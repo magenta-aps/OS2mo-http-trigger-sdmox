@@ -47,11 +47,10 @@ variables:
 Lint Python:
   <<: *lint-default
   before_script:
-    - pip3 install -r backend/requirements-lint.txt
+    - pip3 install -r requirements/lint.txt
   script:
-    - cd backend
-    - flake8 --version
-    - flake8
+    - python -m black --diff --check app/
+    - python -m isort --profile black --diff --check-only app/
 
 Lint Dockerfiles:
   <<: *lint-default

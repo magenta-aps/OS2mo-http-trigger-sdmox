@@ -10,6 +10,7 @@ RUN git clone https://github.com/OS2mo/os2mo-data-import-and-export && \
     pip install --no-cache-dir -e integrations/SD_Lon/SDConnector
 
 COPY ./requirements.txt /srv/requirements.txt
+COPY ./requirements /srv/requirements
 RUN pip install --no-cache-dir -r /srv/requirements.txt
 RUN pip install --no-cache-dir more_itertools
 

@@ -1,2 +1,1 @@
-pika
-os2mo-http-trigger-protocol
+-r requirements/common.txt
