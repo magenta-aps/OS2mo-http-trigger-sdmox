@@ -22,7 +22,7 @@ import sd_mox_payloads as smp
 from config import get_settings
 from util import get_mora_helper, get_organisation_uuid
 
-from SDConnector import SDConnector
+from sd_connector import SDConnector
 
 logger = logging.getLogger("sdMox")
 logger.setLevel(logging.DEBUG)
