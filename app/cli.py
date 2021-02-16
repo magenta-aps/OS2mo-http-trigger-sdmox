@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
 import click
 
 from sd_mox import SDMox

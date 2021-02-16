@@ -1,2 +1,6 @@
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
 pika
 os2mo-http-trigger-protocol

@@ -1,3 +1,8 @@
+# Copyright (c) Magenta ApS
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
 
 # Install mora_helpers
