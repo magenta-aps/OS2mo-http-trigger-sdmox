@@ -2,9 +2,8 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-import datetime
 import collections
-
+import datetime
 
 boilerplate = {
     "@xmlns": "urn:oio:sagdok:organisation:organisationenhed:2.0.0",

@@ -2,15 +2,12 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-import datetime
-
 import asyncio
-from functools import wraps
-from functools import lru_cache
-
-from os2mo_helpers.mora_helpers import MoraHelper
+import datetime
+from functools import lru_cache, wraps
 
 from config import get_settings
+from os2mo_helpers.mora_helpers import MoraHelper
 
 
 def today():

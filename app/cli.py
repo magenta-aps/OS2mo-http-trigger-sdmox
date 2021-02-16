@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import click
-
 from sd_mox import SDMox
 from util import async_to_sync, first_of_month
 
