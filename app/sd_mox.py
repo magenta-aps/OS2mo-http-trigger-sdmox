@@ -401,8 +401,7 @@ class SDMox(object):
         return await self.check_unit(operation="ret", **payload)
 
     async def move_unit(self, unit_uuid, new_parent_uuid, at, dry_run=False):
-        settings = load_settings()
-        mora_helpers = MoraHelper(hostname=settings["mora.base"])
+        mora_helpers = self._get_mora_helper()
 
         # Fetch old ou data
         unit = mora_helpers.read_ou(unit_uuid, at=at)
@@ -411,12 +410,12 @@ class SDMox(object):
         # here - where we still have access to the mo-error reporting
         code_errors = self._validate_unit_code(unit["user_key"], can_exist=True)
         if code_errors:
-            raise sd_mox.SDMoxError(", ".join(code_errors))
+            raise SDMoxError(", ".join(code_errors))
 
         # Fetch the new parent
         new_parent_unit = mora_helpers.read_ou(new_parent_uuid)
 
-        payload = mox.payload_create(unit_uuid, unit, new_parent_unit)
+        payload = self.payload_create(unit_uuid, unit, new_parent_unit)
         operation = "flyt"
         self._move_unit(test_run=dry_run, **payload)
 

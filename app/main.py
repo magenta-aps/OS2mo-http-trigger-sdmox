@@ -12,23 +12,18 @@
 #     ellers går tilbagemeldingen fra SD tilsyneladende i ged.
 #     Der er indført et check for det i sd_mox.py
 
-from datetime import date
+from datetime import date, datetime
 from functools import partial
 from typing import Dict, List, Optional
 from uuid import UUID
 
 import requests
-from config import get_settings
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
 from os2mo_helpers.mora_helpers import MoraHelper
-from os2mo_http_trigger_protocol import (
-    EventType,
-    MOTriggerPayload,
-    MOTriggerRegister,
-    RequestType,
-)
-from pydantic import BaseModel, BaseSettings
+
+from config import get_settings
+from models import *
 from sd_mox import SDMox
 from util import first_of_month, get_mora_helper
 
@@ -72,19 +67,6 @@ def should_mox_run(mo_ou):
             return True
         mo_ou = mo_ou["parent"]
     return False
-
-
-class DetailError(BaseModel):
-    """Default Error model."""
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "detail": "string explaining the error",
-            }
-        }
-
-    detail: str
 
 
 def get_date(
@@ -180,22 +162,20 @@ verify_ou_ok_trigger.responses = _verify_ou_ok.responses
 
 
 async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date):
-    if new_name is None:
-        raise ValueError("NO")
+    assert new_name is not None, "_ou_edit_name called without new_name"
 
     print("Changing name")
     mox = SDMox(from_date=at)
-    mox.amqp_connect()
+    # mox.amqp_connect()
     await mox.rename_unit(ou_uuid, new_name, at=at, dry_run=True)
 
 
 async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date):
-    if new_parent is None:
-        raise ValueError("NO")
+    assert new_parent is not None, "_ou_edit_name called without new_parent"
 
     print("Changing parent")
     mox = SDMox(from_date=at)
-    mox.amqp_connect()
+    # mox.amqp_connect()
     await mox.move_unit(ou_uuid, new_parent, at=at, dry_run=True)
 
 
@@ -333,15 +313,15 @@ async def triggers_ou_edit(payload: MOTriggerPayload):
     uuid = payload.uuid
     data = payload.request.data
 
-    at = data["validity"]["from"]
+    at = datetime.strptime(data["validity"]["from"], "%Y-%m-%d").date()
 
-    new_name = data["name"]
-    if new_name:
+    if "name" in data:
+        new_name = data["name"]
         await _ou_edit_name(uuid, new_name, at)
 
-    new_parent_obj = data["parent"]
-    if new_parent_obj:
-        new_parent_uuid = new_parent_obj.uuid
+    if "parent" in data:
+        new_parent_obj = data["parent"]
+        new_parent_uuid = new_parent_obj["uuid"]
         await _ou_edit_parent(uuid, new_parent_uuid, at)
     return {"status": "OK"}
 
