@@ -1,0 +1,2 @@
+pika
+os2mo-http-trigger-protocol
