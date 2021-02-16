@@ -22,8 +22,12 @@ from config import get_settings
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
 from os2mo_helpers.mora_helpers import MoraHelper
-from os2mo_http_trigger_protocol import (EventType, MOTriggerPayload,
-                                         MOTriggerRegister, RequestType)
+from os2mo_http_trigger_protocol import (
+    EventType,
+    MOTriggerPayload,
+    MOTriggerRegister,
+    RequestType,
+)
 from pydantic import BaseModel, BaseSettings
 from sd_mox import SDMox
 from util import first_of_month, get_mora_helper

@@ -40,7 +40,7 @@ class SDMox(object):
             self.settings.sd_institution,
             self.settings.sd_username,
             self.settings.sd_password,
-            self.settings.sd_base_url
+            self.settings.sd_base_url,
         )
 
         # Fetch levels from MO
@@ -81,8 +81,7 @@ class SDMox(object):
     def amqp_connect(self):
         """Establish a connection to the AMQP broker."""
         credentials = pika.PlainCredentials(
-            self.settings.amqp_username,
-            self.settings.amqp_password
+            self.settings.amqp_username, self.settings.amqp_password
         )
         parameters = pika.ConnectionParameters(
             host=self.settings.amqp_host,
@@ -141,8 +140,8 @@ class SDMox(object):
         department = await self.sd_connector.getDepartment(
             department_identifier=(unit_uuid or unit_code),
             department_level_identifier=unit_level,
-            start_date = from_date,
-            end_date = from_date,
+            start_date=from_date,
+            end_date=from_date,
         )
         department_info = department.get("Department", None)
         logger.debug(
