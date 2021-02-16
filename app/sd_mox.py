@@ -124,11 +124,13 @@ class SDMox(object):
             "virk_to": to_date.strftime("%Y-%m-%dT00:00:00.00"),
         }
 
-    def read_parent(self, unit_uuid=None):
+    async def read_parent(self, unit_uuid=None):
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
-        params = {"EffectiveDate": from_date, "DepartmentUUIDIdentifier": unit_uuid}
-        logger.debug("Read parent, params: {}".format(params))
-        parent = self.sd.lookup("GetDepartmentParent20190701", params)
+        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
+        parent = await self.sd_connector.getDepartmentParent(
+            department_uuid_identifier=unit_uuid,
+            effective_date=from_date,
+        )
         parent_info = parent.get("DepartmentParent", None)
         return parent_info
 
@@ -232,7 +234,7 @@ class SDMox(object):
             )
         if parent is not None:
             parent_uuid = parent["uuid"]
-            actual = self.read_parent(unit_uuid)
+            actual = await self.read_parent(unit_uuid)
             if actual is not None:
                 compare(actual.get("DepartmentUUIDIdentifier"), parent_uuid, "Parent")
             else:
