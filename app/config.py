@@ -10,7 +10,7 @@ from pydantic import AnyUrl, BaseSettings, HttpUrl
 
 
 class Settings(BaseSettings):
-    mora_url: HttpUrl = "http://mo:5000"
+    mora_url: HttpUrl = "https://morademo.magenta.dk/"
     saml_token: Optional[str]
 
     triggered_uuids: List[UUID]
@@ -31,7 +31,6 @@ class Settings(BaseSettings):
     sd_base_url: str = "https://service.sd.dk/sdws/"
 
 
-@lru_cache
 def get_settings(**overrides):
     settings = Settings(**overrides)
     return settings

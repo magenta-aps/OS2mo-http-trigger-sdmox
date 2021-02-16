@@ -12,7 +12,7 @@ from xmltodict import parse
 
 import sys
 sys.path.insert(0, 'app')
-from app import sd_mox
+from app.sd_mox import SDMox
 
 xmlparse = partial(parse, dict_constructor=dict)
 
@@ -40,35 +40,19 @@ unit_parent = {
     "user_key": "user-key-11111",
 }
 
+mox_overrides = {
+    "triggered_uuids": [],
+    "ou_levelkeys": [],
+    "ou_time_planning_mo_vs_sd": {},
 
-mox_cfg = {
-    "TR_DANNES_IKKE": "uuid-tr-dannes-ikke",
-    "TR_ARBEJDSTIDSPLANER": "uuid-tr-arbejdstidsplaner",
-    "TR_TJENESTETID": "uuid-tr-tjenestetid",
-    "AMQP_USER": "example",
-    "AMQP_HOST": "example.com",
-    "AMQP_PORT": 2222,
-    "AMQP_PASSWORD": "",
-    "AMQP_CHECK_WAITTIME": 0,
-    "AMQP_CHECK_RETRIES": 0,
-    "VIRTUAL_HOST": "example.com",
-    "NY6_NIVEAU": "6",
-    "NY5_NIVEAU": "5",
-    "NY4_NIVEAU": "4",
-    "NY3_NIVEAU": "3",
-    "NY2_NIVEAU": "2",
-    "NY1_NIVEAU": "1",
-    "AFDELINGS_NIVEAU": "uuid-a",
-    "sd_common": {
-        "SD_USER": "",
-        "SD_PASSWORD": "",
-        "BASE_URL": "",
-        "INSTITUTION_IDENTIFIER": "",
-    },
-    "sd_unit_levels": {"Afdelings-niveau": "uuid-b"},
-    "arbtid_by_uuid": {
-        "uuid-tr-arbejdstidsplaner": "Arbejdstidsplaner",
-    },
+    "amqp_username": "guest",
+    "amqp_password": "guest",
+    "amqp_host": "example.org",
+    "amqp_virtual_host": "example.org",
+
+    "sd_username": "",
+    "sd_password": "",
+    "sd_institution": "",
 }
 
 
@@ -76,7 +60,18 @@ mox_cfg = {
 class Tests(TestCase):
     def setUp(self):
         from_date = datetime.datetime(2019, 7, 1, 0, 0)
-        self.mox = sd_mox.sdMox(from_date, **mox_cfg)
+        self.mox = SDMox(from_date, overrides=mox_overrides)
+
+        from collections import OrderedDict
+        self.mox.sd_levels = OrderedDict([
+            ("Afdelings-niveau", "uuid-b")
+        ])
+        self.mox.level_by_uuid = {
+            "uuid-b": "Afdelings-niveau",
+        }
+        self.mox.arbtid_by_uuid = {
+            "uuid-tr-arbejdstidsplaner": "Arbejdstidsplaner",
+        }
 
     def test_grouped_adresses(self):
         addresses = [
