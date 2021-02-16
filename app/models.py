@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
 
 from os2mo_http_trigger_protocol import (
     EventType,
@@ -6,6 +8,8 @@ from os2mo_http_trigger_protocol import (
     MOTriggerRegister,
     RequestType,
 )
+from pydantic import BaseModel
+
 
 class DetailError(BaseModel):
     """Default Error model."""

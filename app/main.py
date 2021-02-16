@@ -18,12 +18,11 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 import requests
+from config import get_settings
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
-from os2mo_helpers.mora_helpers import MoraHelper
-
-from config import get_settings
 from models import *
+from os2mo_helpers.mora_helpers import MoraHelper
 from sd_mox import SDMox
 from util import first_of_month, get_mora_helper
 
