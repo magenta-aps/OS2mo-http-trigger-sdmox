@@ -4,4 +4,4 @@
 
 -r common.txt
 pytest
-coverage
+pytest-cov
