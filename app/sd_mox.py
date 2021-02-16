@@ -388,22 +388,16 @@ class SDMox(object):
         # Change to add our new data
         unit["name"] = new_unit_name
 
-        print("rename_unit", unit)
-
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
         code_errors = await self._validate_unit_code(unit["user_key"], can_exist=True)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
-        print("code_errors", code_errors)
-
         addresses = mora_helpers.read_ou_address(
             unit_uuid, at=at, scope=None, return_all=True, reformat=False
         )
-        print("addresses", addresses)
         payload = self.payload_edit(unit_uuid, unit, addresses)
-        print("payload", payload)
 
         self.edit_unit(test_run=dry_run, **payload)
         return await self.check_unit(operation="ret", **payload)
