@@ -4,3 +4,4 @@
 
 -r common.txt
 black
+isort

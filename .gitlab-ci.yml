@@ -99,6 +99,8 @@ Build Image:
   stage: test
   needs: ["Build Image"]
   services: []
+  before_script:
+    - pip3 install -r requirements/test.txt
   tags:
     - docker
 
@@ -114,7 +116,7 @@ Unit-test:
       --cov-report term
       -p no:cacheprovider
       --color=yes
-      backend/tests/
+      tests/
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     when: always
