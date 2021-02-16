@@ -165,8 +165,8 @@ async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date):
 
     print("Changing name")
     mox = SDMox(from_date=at)
-    # mox.amqp_connect()
-    await mox.rename_unit(ou_uuid, new_name, at=at, dry_run=True)
+    mox.amqp_connect()
+    await mox.rename_unit(str(ou_uuid), new_name, at=at)
 
 
 async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date):
@@ -174,8 +174,8 @@ async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date):
 
     print("Changing parent")
     mox = SDMox(from_date=at)
-    # mox.amqp_connect()
-    await mox.move_unit(ou_uuid, new_parent, at=at, dry_run=True)
+    mox.amqp_connect()
+    await mox.move_unit(str(ou_uuid), new_parent, at=at)
 
 
 @app.get(
@@ -309,7 +309,7 @@ def ou_create():
 )
 async def triggers_ou_edit(payload: MOTriggerPayload):
     """Rename or move an organizational unit."""
-    uuid = payload.uuid
+    uuid = str(payload.uuid)
     data = payload.request.data
 
     at = datetime.strptime(data["validity"]["from"], "%Y-%m-%d").date()

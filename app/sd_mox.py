@@ -288,7 +288,7 @@ class SDMox(object):
         xml = xmltodict.unparse(flyt_dict)
         return xml
 
-    def _validate_unit_code(self, unit_code, unit_level=None, can_exist=False):
+    async def _validate_unit_code(self, unit_code, unit_level=None, can_exist=False):
         logger.info("Validating unit code {}".format(unit_code))
         code_errors = []
         if unit_code is None:
@@ -307,7 +307,7 @@ class SDMox(object):
             # TODO: Ignore duplicates as we lookup using UUID elsewhere
             #       Only check for duplicates on new creations
             # customers expect unique unit_codes globally
-            department = self.read_department(unit_code=unit_code)
+            department = await self.read_department(unit_code=unit_code)
             if department is not None and not can_exist:
                 code_errors.append("Enhedsnummer er i brug")
         return code_errors
@@ -325,7 +325,7 @@ class SDMox(object):
         }
         return sd_address
 
-    def create_unit(
+    async def create_unit(
         self, unit_name, unit_code, parent, unit_level, unit_uuid=None, test_run=True
     ):
         """
@@ -342,13 +342,13 @@ class SDMox(object):
         will not be the same random uuid as for the actual run, unless the returned
         uuid is stored and given as parameter for the actual run.
         """
-        code_errors = self._validate_unit_code(unit_code)
+        code_errors = await self._validate_unit_code(unit_code)
 
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
         # Verify the parent department actually exist
-        parent_department = self.read_department(
+        parent_department = await self.read_department(
             unit_code=parent["unit_code"], unit_level=parent["level"]
         )
         if not parent_department:
@@ -386,16 +386,22 @@ class SDMox(object):
         # Change to add our new data
         unit["name"] = new_unit_name
 
+        print("rename_unit", unit)
+
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
-        code_errors = self._validate_unit_code(unit["user_key"], can_exist=True)
+        code_errors = await self._validate_unit_code(unit["user_key"], can_exist=True)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
+
+        print("code_errors", code_errors)
 
         addresses = mora_helpers.read_ou_address(
             unit_uuid, at=at, scope=None, return_all=True, reformat=False
         )
+        print("addresses", addresses)
         payload = self.payload_edit(unit_uuid, unit, addresses)
+        print("payload", payload)
 
         self.edit_unit(test_run=dry_run, **payload)
         return await self.check_unit(operation="ret", **payload)
@@ -408,7 +414,7 @@ class SDMox(object):
 
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
-        code_errors = self._validate_unit_code(unit["user_key"], can_exist=True)
+        code_errors = await self._validate_unit_code(unit["user_key"], can_exist=True)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
@@ -417,7 +423,7 @@ class SDMox(object):
 
         payload = self.payload_create(unit_uuid, unit, new_parent_unit)
         operation = "flyt"
-        self._move_unit(test_run=dry_run, **payload)
+        await self._move_unit(test_run=dry_run, **payload)
 
         # when moving, do not check against name
         payload["unit_name"] = None
@@ -431,16 +437,16 @@ class SDMox(object):
             self.call(xml)
         return payload["unit_uuid"]
 
-    def _move_unit(
+    async def _move_unit(
         self, unit_name, unit_code, parent, unit_level, unit_uuid=None, test_run=True
     ):
 
-        code_errors = self._validate_unit_code(unit_code, can_exist=True)
+        code_errors = await self._validate_unit_code(unit_code, can_exist=True)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
         # Verify the parent department actually exist
-        parent_department = self.read_department(
+        parent_department = await self.read_department(
             unit_code=parent["unit_code"], unit_level=parent["level"]
         )
         if not parent_department:

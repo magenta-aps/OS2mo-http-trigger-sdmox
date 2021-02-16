@@ -134,3 +134,4 @@ dmypy.json
 
 # Docker override
 docker-compose.override.yml
+docker-compose.override.yaml
