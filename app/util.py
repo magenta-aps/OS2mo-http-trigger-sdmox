@@ -3,61 +3,61 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import asyncio
-import datetime
+from datetime import date
 from functools import lru_cache, partial, wraps
+from typing import Awaitable, Callable, TypeVar
+from uuid import UUID
 
 from os2mo_helpers.mora_helpers import MoraHelper
 
 from app.config import get_settings
 
 
-def today():
-    today = datetime.date.today()
-    return today
+def today() -> date:
+    return date.today()
 
 
-def first_of_month():
+def first_of_month() -> date:
     first_day_of_this_month = today().replace(day=1)
     return first_day_of_this_month
 
 
 @lru_cache(maxsize=0)
-def get_mora_helper(mora_url=None):
+def get_mora_helper(mora_url=None) -> MoraHelper:
     mora_url = mora_url or get_settings().mora_url
     return MoraHelper(hostname=mora_url, use_cache=False)
 
 
-get_mora_helper_default = partial(get_mora_helper, None)
+def get_mora_helper_default() -> MoraHelper:
+    return get_mora_helper(None)
 
 
-@lru_cache(maxsize=0)
-def get_organisation_uuid(mora_url=None):
-    mora_helper = get_mora_helper(mora_url=mora_url)
-    org_uuid = mora_helper.read_organisation()
+CallableReturnType = TypeVar("CallableReturnType")
 
 
-def async_to_sync(f):
+def async_to_sync(
+    func: Callable[..., Awaitable[CallableReturnType]]
+) -> Callable[..., CallableReturnType]:
     """Decorator to run an async function to completion.
 
     Example:
 
         @async_to_sync
         async def sleepy(seconds):
-            await sleep(seconds)
+            await asyncio.sleep(seconds)
+            return seconds
 
-        sleepy(5)
+        print(sleepy(5))  # --> 5
 
     Args:
-        f (async function): The async function to wrap and make synchronous.
+        func (async function): The asynchronous function to wrap.
 
     Returns:
-        :obj:`sync function`: The syncronhous function wrapping the async one.
+        :obj:`sync function`: The synchronous function wrapping the async one.
     """
 
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        loop = asyncio.get_event_loop()
-        future = asyncio.ensure_future(f(*args, **kwargs))
-        return loop.run_until_complete(future)
+    @wraps(func)
+    def wrapper(*args, **kwargs) -> CallableReturnType:
+        return asyncio.run(func(*args, **kwargs))
 
     return wrapper

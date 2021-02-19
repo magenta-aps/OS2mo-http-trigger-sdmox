@@ -108,7 +108,7 @@ async def triggers_ou_create(
     _verify_ou_ok(parent_uuid, at, mora_helper)
 
     # Preconditions have been checked, time to try to create the organizational unit
-    uuid = str(payload.uuid)
+    uuid = payload.uuid
     unit_data = payload.request
     parent_data = mora_helper.read_ou(parent_uuid, at=at)
     mox: SDMoxInterface = SDMox(from_date=at)
@@ -174,10 +174,9 @@ async def triggers_address_create(
     _verify_ou_ok(unit_uuid, at, mora_helper)
 
     # Preconditions have been checked, time to try to create the organizational unit
-    address_uuid = str(payload.uuid)
     address_data = payload.request
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_address(unit_uuid, address_uuid, address_data, at, dry_run=dry_run)
+    await mox.create_address(unit_uuid, address_data, at, dry_run=dry_run)
 
     return {"status": "OK"}
 
@@ -210,9 +209,8 @@ async def triggers_address_edit(
     _verify_ou_ok(unit_uuid, at, mora_helper)
 
     # Preconditions have been checked, time to try to create the organizational unit
-    address_uuid = str(payload.uuid)
     address_data = payload.request["data"]
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_address(unit_uuid, address_uuid, address_data, at, dry_run=dry_run)
+    await mox.create_address(unit_uuid, address_data, at, dry_run=dry_run)
 
     return {"status": "OK"}

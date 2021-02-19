@@ -16,7 +16,7 @@ from app.sd_mox import SDMox, SDMoxInterface
 from app.util import first_of_month
 
 
-def should_mox_run(mo_ou):
+def should_mox_run(mo_ou: dict):
     """Determine whether sdmox should trigger code for this organizational unit.
 
     This is determined by whether the UUID of the unit is in the
@@ -35,7 +35,7 @@ async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date, dry_run: bool):
 
     print("Changing name")
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.rename_unit(str(ou_uuid), new_name, at=at, dry_run=dry_run)
+    await mox.rename_unit(ou_uuid, new_name, at=at, dry_run=dry_run)
 
 
 async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date, dry_run: bool):
@@ -43,7 +43,7 @@ async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date, dry_run: bo
 
     print("Changing parent")
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.move_unit(str(ou_uuid), new_parent, at=at, dry_run=dry_run)
+    await mox.move_unit(ou_uuid, new_parent, at=at, dry_run=dry_run)
 
 
 def get_date(

@@ -48,8 +48,12 @@ app = FastAPI(
     version="0.0.1",
     openapi_tags=tags_metadata,
 )
-# Called for side-effect
-get_settings()
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Called for validation side-effect
+    get_settings()
 
 
 @app.get(

@@ -2,8 +2,10 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-import collections
-import datetime
+from collections import OrderedDict
+from datetime import datetime
+from typing import Optional, Union
+from uuid import UUID
 
 boilerplate = {
     "@xmlns": "urn:oio:sagdok:organisation:organisationenhed:2.0.0",
@@ -21,20 +23,20 @@ boilerplate = {
 }
 
 
-def sd_virkning(from_time, to_time=None):
-    from_string = datetime.datetime.strftime(from_time, "%Y-%m-%dT%H:%M:%S.00")
+def sd_virkning(from_time: datetime, to_time: Optional[datetime] = None):
+    from_string = datetime.strftime(from_time, "%Y-%m-%dT%H:%M:%S.00")
 
     validity = {"sd:FraTidspunkt": {"sd:TidsstempelDatoTid": from_string}}
 
     if to_time is not None:
-        to_string = datetime.datetime.strftime(to_time, "%Y-%m-%dT%H:%M:%S.00")
+        to_string = datetime.strftime(to_time, "%Y-%m-%dT%H:%M:%S.00")
         validity["sd:TilTidspunkt"] = {"sd:TidsstempelDatoTid": to_string}
     return validity
 
 
-def create_objekt_id(unit_uuid):
+def create_objekt_id(unit_uuid: Union[UUID, str]):
     objekt_id = {
-        "sd:UUIDIdentifikator": unit_uuid,
+        "sd:UUIDIdentifikator": str(unit_uuid),
         "sd:IdentifikatorType": "OrganisationEnhed",
     }
     return objekt_id
@@ -106,7 +108,7 @@ def flyt_xml_dict(
     **kwargs
 ):
     reg = {
-        "RegistreringBesked": collections.OrderedDict(
+        "RegistreringBesked": OrderedDict(
             {
                 "@xmlns": "urn:oio:sagdok:organisation:organisationenhed:2.0.0",
                 "@xmlns:cvr": "http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/",
@@ -127,7 +129,7 @@ def flyt_xml_dict(
     rb = reg["RegistreringBesked"]
     rb["ObjektID"] = create_objekt_id(unit_uuid)
 
-    rg = rb["Registrering"] = collections.OrderedDict()
+    rg = rb["Registrering"] = OrderedDict()
     rg["sd:FraTidspunkt"] = ({"sd:TidsstempelDatoTid": virk_from},)
     rg["sd:LivscyklusKode"] = "Flyttet"
     rg["sd:BrugerRef"] = {
@@ -172,9 +174,9 @@ def import_xml_dict(
     parent_unit_uuid=None,
     **kwargs
 ):
-    reg = collections.OrderedDict(
+    reg = OrderedDict(
         {
-            "RegistreringBesked": collections.OrderedDict(
+            "RegistreringBesked": OrderedDict(
                 {
                     "@xmlns": "urn:oio:sagdok:organisation:organisationenhed:2.0.0",
                     "@xmlns:cvr": "http://rep.oio.dk/cvr.dk/xml/schemas/2005/03/22/",
@@ -199,7 +201,7 @@ def import_xml_dict(
     rb = reg["RegistreringBesked"]
     rb["ObjektID"] = create_objekt_id(unit_uuid)
 
-    rg = rb["Registrering"] = collections.OrderedDict()
+    rg = rb["Registrering"] = OrderedDict()
 
     rg["sd:FraTidspunkt"] = ({"sd:TidsstempelDatoTid": virk_from},)
     rg["sd:LivscyklusKode"] = "Opstaaet"
@@ -208,9 +210,9 @@ def import_xml_dict(
         "sd:UUIDIdentifikator": "3bb66b0d-132d-4b98-a903-ea29f6552mmm",
     }
 
-    ra = rg["AttributListe"] = collections.OrderedDict()
+    ra = rg["AttributListe"] = OrderedDict()
 
-    ra["Egenskab"] = collections.OrderedDict(
+    ra["Egenskab"] = OrderedDict(
         {
             "sd:EnhedNavn": unit_name,
             "sd:Virkning": {
@@ -281,5 +283,5 @@ def create_registrering(virkning, registry_type):
             }
         },
     }
-    registrering.update(sd_virkning(datetime.datetime.now()))
+    registrering.update(sd_virkning(datetime.now()))
     return registrering

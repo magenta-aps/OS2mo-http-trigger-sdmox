@@ -3,12 +3,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import asyncio
-import datetime
 import logging
 import pprint
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from datetime import date, datetime
 from operator import itemgetter
+from uuid import UUID
+from typing import Optional
 
 import pika
 import requests
@@ -18,7 +20,7 @@ from sd_connector import SDConnector
 
 import app.sd_mox_payloads as smp
 from app.config import get_settings
-from app.util import get_mora_helper, get_organisation_uuid
+from app.util import get_mora_helper
 
 logger = logging.getLogger("sdMox")
 logger.setLevel(logging.DEBUG)
@@ -32,26 +34,32 @@ class SDMoxError(Exception):
 
 class SDMoxInterface(ABC):
     @abstractmethod
-    async def rename_unit(self, unit_uuid, new_unit_name, at, dry_run=False):
+    async def rename_unit(
+        self, unit_uuid: UUID, new_unit_name: str, at: date, dry_run: bool = False
+    ):
         raise NotImplementedError()
 
     @abstractmethod
-    async def move_unit(self, unit_uuid, new_parent_uuid, at, dry_run=False):
+    async def move_unit(
+        self, unit_uuid: UUID, new_parent_uuid: UUID, at: date, dry_run: bool = False
+    ):
         raise NotImplementedError()
 
     @abstractmethod
-    async def create_unit(self, unit_uuid, unit_data, parent_data, dry_run=False):
+    async def create_unit(
+        self, unit_uuid: UUID, unit_data: dict, parent_data: dict, dry_run: bool = False
+    ):
         raise NotImplementedError()
 
     @abstractmethod
     async def create_address(
-        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+        self, unit_uuid: UUID, address_data: dict, at: date, dry_run: bool = False
     ):
         raise NotImplementedError()
 
     @abstractmethod
     async def edit_address(
-        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+        self, unit_uuid: UUID, address_data: dict, at: date, dry_run: bool = False
     ):
         raise NotImplementedError()
 
@@ -80,12 +88,12 @@ class SDMox(SDMoxInterface):
         if from_date:
             self._update_virkning(from_date)
 
-    def _get_mora_helper(self):
+    def _get_mora_helper(self) -> MoraHelper:
         mora_helper = get_mora_helper(self.settings.mora_url)
         return mora_helper
 
-    def _read_ou_levelkeys(self):
-        mora_helpers = self._get_mora_helper()
+    def _read_ou_levelkeys(self) -> OrderedDict:
+        mora_helpers: MoraHelper = self._get_mora_helper()
 
         classes, _ = mora_helpers.read_classes_in_facet("org_unit_level")
         classes = dict(map(itemgetter("user_key", "uuid"), classes))
@@ -93,8 +101,8 @@ class SDMox(SDMoxInterface):
             map(lambda key: (key, classes[key]), self.settings.ou_levelkeys)
         )
 
-    def _read_arbtid_by_uuid(self):
-        mora_helpers = self._get_mora_helper()
+    def _read_arbtid_by_uuid(self) -> dict:
+        mora_helpers: MoraHelper = self._get_mora_helper()
 
         classes, _ = mora_helpers.read_classes_in_facet("time_planning")
         classes = dict(map(itemgetter("user_key", "uuid"), classes))
@@ -104,10 +112,10 @@ class SDMox(SDMoxInterface):
             arbtid_by_uuid[classes[key]] = sd_value
         return arbtid_by_uuid
 
-    def _update_virkning(self, from_date, to_date=None):
+    def _update_virkning(self, from_date: date, to_date: Optional[date] = None):
         self.virkning = smp.sd_virkning(from_date, to_date)
         if to_date is None:
-            to_date = datetime.date(9999, 12, 31)
+            to_date = date(9999, 12, 31)
         if not from_date.day == 1:
             raise SDMoxError("Startdato skal altid være den første i en måned")
         self._times = {
@@ -167,7 +175,6 @@ class SDMox(SDMoxInterface):
             properties=pika.BasicProperties(reply_to=self.callback_queue),
             body=xml,
         )
-        return True
 
     # ------------------------ #
     # AMQP setup methods above #
@@ -175,11 +182,15 @@ class SDMox(SDMoxInterface):
     # Interface methods below  #
     # ------------------------ #
 
-    async def rename_unit(self, unit_uuid, new_unit_name, at, dry_run=False):
+    async def rename_unit(
+        self, unit_uuid: UUID, new_unit_name: str, at: date, dry_run: bool = False
+    ):
+        unit_uuid_str = str(unit_uuid)
+
         mora_helpers = self._get_mora_helper()
 
         # Fetch old ou data
-        unit_data = mora_helpers.read_ou(unit_uuid, at=at)
+        unit_data = mora_helpers.read_ou(unit_uuid_str, at=at)
         # Change to add our new data
         unit_data["name"] = new_unit_name
 
@@ -192,15 +203,22 @@ class SDMox(SDMoxInterface):
             raise SDMoxError(", ".join(code_errors))
 
         addresses = mora_helpers.read_ou_address(
-            unit_uuid, at=at, scope=None, return_all=True, reformat=False
+            unit_uuid_str, at=at, scope=None, return_all=True, reformat=False
         )
-        return await self._update_ou(unit_uuid, unit_data, addresses, dry_run=dry_run)
+        return await self._update_ou(
+            unit_uuid_str, unit_data, addresses, dry_run=dry_run
+        )
 
-    async def move_unit(self, unit_uuid, new_parent_uuid, at, dry_run=False):
+    async def move_unit(
+        self, unit_uuid: UUID, new_parent_uuid: UUID, at: date, dry_run: bool = False
+    ):
+        unit_uuid_str = str(unit_uuid)
+        new_parent_uuid_str = str(new_parent_uuid)
+
         mora_helpers = self._get_mora_helper()
 
         # Fetch old ou data
-        unit_data = mora_helpers.read_ou(unit_uuid, at=at)
+        unit_data = mora_helpers.read_ou(unit_uuid_str, at=at)
 
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
@@ -211,35 +229,38 @@ class SDMox(SDMoxInterface):
             raise SDMoxError(", ".join(code_errors))
 
         # Fetch the new parent
-        new_parent_unit = mora_helpers.read_ou(new_parent_uuid)
+        new_parent_unit = mora_helpers.read_ou(new_parent_uuid_str)
 
-        payload = self._payload_create(unit_uuid, unit_data, new_parent_unit)
+        payload = self._payload_create(unit_uuid_str, unit_data, new_parent_unit)
         await self._move_unit(test_run=dry_run, **payload)
 
         # when moving, do not check against name
         payload["unit_name"] = None
         return await self._check_unit(operation="flyt", **payload)
 
-    async def create_unit(self, unit_uuid, unit_data, parent_data, dry_run=False):
-        payload = self._payload_create(unit_uuid, unit_data, parent_data)
+    async def create_unit(
+        self, unit_uuid: UUID, unit_data: dict, parent_data: dict, dry_run: bool = False
+    ):
+        unit_uuid_str = str(unit_uuid)
+
+        payload = self._payload_create(unit_uuid_str, unit_data, parent_data)
         await self._create_unit(test_run=dry_run, **payload)
 
         details = unit_data.get("details", [])
         if details:
             addresses = details
             # Create adresses on the new organizational unit
-            await self._update_ou(unit_uuid, unit_data, addresses, dry_run=dry_run)
+            await self._update_ou(unit_uuid_str, unit_data, addresses, dry_run=dry_run)
         # check unit here
-        return await mox.check_unit(operation="import", **payload)
+        return await self._check_unit(operation="import", **payload)
 
     async def create_address(
-        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+        self, unit_uuid: UUID, address_data: dict, at: date, dry_run: bool = False
     ):
         """Called when a new address is added to an existing organizational unit.
 
         Args:
             unit_uuid: UUID of the unit to be updated / added to.
-            address_uuid: UUID of the address to be added.
             address_data: MO data of the address to be added.
             at: datetime of when to apply the change.
             dry_run: Whether to dry-run the changes or to actually apply them.
@@ -248,28 +269,29 @@ class SDMox(SDMoxInterface):
             unit: The SD Organizational unit if changes went well,
                   SDMoxError with description of the issue otherwise.
         """
+        unit_uuid_str = str(unit_uuid)
+
         mora_helpers = self._get_mora_helper()
 
-        unit_data = mora_helpers.read_ou(unit_uuid, at=at)
+        unit_data = mora_helpers.read_ou(unit_uuid_str, at=at)
 
         previous_addresses = mora_helpers.read_ou_address(
-            unit_uuid, at=at, scope=None, return_all=True, reformat=False
+            unit_uuid_str, at=at, scope=None, return_all=True, reformat=False
         )
         # the new address is prepended to addresses and
         # thereby given higher priority in sd_mox.py
         # see 'grouped_addresses'
         addresses = [address_data] + previous_addresses
 
-        return await self._update_ou(unit_uuid, unit_data, addresses, dry_run=dry_run)
+        return await self._update_ou(unit_uuid_str, unit_data, addresses, dry_run=dry_run)
 
     async def edit_address(
-        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+        self, unit_uuid: UUID, address_data: dict, at: date, dry_run: bool = False
     ):
         """Called when an address is edited on an existing organizational unit.
 
         Args:
             unit_uuid: UUID of the unit to be updated / added to.
-            address_uuid: UUID of the address to be added.
             address_data: MO data of the address to be added.
             at: datetime of when to apply the change.
             dry_run: Whether to dry-run the changes or to actually apply them.
@@ -280,7 +302,7 @@ class SDMox(SDMoxInterface):
         """
         # Call create as the procedure is the same
         return await self.create_address(
-            unit_uuid, address_uuid, address_data, at, dry_run=dry_run
+            unit_uuid, address_data, at, dry_run=dry_run
         )
 
     # ----------------------- #
@@ -308,7 +330,7 @@ class SDMox(SDMoxInterface):
 
     async def _read_parent(self, unit_uuid=None):
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
-        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
+        from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
         parent = await self.sd_connector.getDepartmentParent(
             department_uuid_identifier=unit_uuid,
             effective_date=from_date,
@@ -318,7 +340,7 @@ class SDMox(SDMoxInterface):
 
     async def _read_department(self, unit_code=None, unit_uuid=None, unit_level=None):
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
-        from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d").date()
+        from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
         department = await self.sd_connector.getDepartment(
             department_identifier=(unit_uuid or unit_code),
             department_level_identifier=unit_level,
