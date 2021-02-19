@@ -45,6 +45,13 @@ variables:
   tags:
     - docker
 
+TypeCheck Python:
+  <<: *lint-default
+  before_script:
+    - pip3 install -r requirements/lint.txt
+  script:
+    - python -m mypy --ignore-missing-imports --strict-optional --no-implicit-optional app/
+
 Lint Python:
   <<: *lint-default
   before_script:

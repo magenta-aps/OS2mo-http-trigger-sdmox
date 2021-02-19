@@ -3,5 +3,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 -r common.txt
+mypy
 black
 isort

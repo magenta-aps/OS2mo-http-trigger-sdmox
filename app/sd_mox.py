@@ -44,7 +44,9 @@ class SDMoxInterface(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def create_address(self, address_uuid, address_data, dry_run=False):
+    async def create_address(
+        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+    ):
         raise NotImplementedError()
 
     @abstractmethod

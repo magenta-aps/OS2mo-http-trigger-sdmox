@@ -6,12 +6,14 @@ from functools import partial
 from typing import Optional
 from uuid import UUID
 
+from requests.exceptions import ConnectionError
 from fastapi import Depends, HTTPException, Query, status
 from os2mo_helpers.mora_helpers import MoraHelper
 
+from app.config import get_settings
 from app.models import DetailError
-from app.util import first_of_month
 from app.sd_mox import SDMox, SDMoxInterface
+from app.util import first_of_month
 
 
 def should_mox_run(mo_ou):
@@ -65,7 +67,7 @@ def _verify_ou_ok(uuid: UUID, at: date, mora_helper: MoraHelper):
     try:
         # TODO: AIOHTTP MoraHelpers?
         mo_ou = mora_helper.read_ou(uuid, at=at)
-    except requests.exceptions.ConnectionError:
+    except ConnectionError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Could not establish a connection to MO",
@@ -84,7 +86,7 @@ def _verify_ou_ok(uuid: UUID, at: date, mora_helper: MoraHelper):
         )
 
 
-_verify_ou_ok.responses = {
+_verify_ou_ok_responses = {
     status.HTTP_502_BAD_GATEWAY: {
         "model": DetailError,
         "description": (

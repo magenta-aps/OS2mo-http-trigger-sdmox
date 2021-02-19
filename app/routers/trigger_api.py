@@ -1,17 +1,21 @@
 # SPDX-FileCopyrightText: Magenta ApS
 #
 # SPDX-License-Identifier: MPL-2.0
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, FastAPI, Path, Query, Request
+from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Path, Query,
+                     Request, status)
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from app.dependencies import _verify_ou_ok, get_date
-from app.models import (MOTriggerPayload, MOTriggerPayloadAddressCreate,
+from app.dependencies import (_ou_edit_name, _ou_edit_parent, _verify_ou_ok,
+                              _verify_ou_ok_responses)
+from app.models import (EventType, MOTriggerPayload,
+                        MOTriggerPayloadAddressCreate,
                         MOTriggerPayloadAddressEdit, MOTriggerPayloadOUCreate,
-                        MOTriggerPayloadOUEdit, MOTriggerRegister, RequestType, EventType)
+                        MOTriggerPayloadOUEdit, MOTriggerRegister, RequestType)
+from app.sd_mox import SDMox, SDMoxInterface
 from app.util import get_mora_helper_default
 
 router = APIRouter()
@@ -26,9 +30,6 @@ def verify_ou_ok_trigger(
 
     at = data["validity"]["from"]
     _verify_ou_ok(uuid, at, mora_helper)
-
-
-verify_ou_ok_trigger.responses = _verify_ou_ok.responses
 
 
 @router.get(
@@ -53,7 +54,7 @@ def triggers(request: Request) -> List[MOTriggerRegister]:
             event_type=EventType.ON_BEFORE,
             request_type=request_type,
             role_type=role_type,
-            url="triggers/" + str(role_type) + "/" + str(request_type.value),
+            url="/triggers/" + str(role_type) + "/" + str(request_type.value),
         )
         for request_type, role_type in triggers
     ]
@@ -69,6 +70,7 @@ async def triggers_ou_create(
     mora_helper=Depends(get_mora_helper_default),
 ):
     """Create an organizational unit."""
+    dry_run = dry_run or False
     print("/triggers/ou/create called")
     print(payload.json(indent=4))
 
@@ -99,7 +101,7 @@ async def triggers_ou_create(
 
 @router.post(
     "/org_unit/" + str(RequestType.EDIT.value),
-    responses=verify_ou_ok_trigger.responses,
+    responses=_verify_ou_ok_responses,
     dependencies=[Depends(verify_ou_ok_trigger)],
     summary="Rename or move an organizational unit.",
 )
@@ -108,10 +110,11 @@ async def triggers_ou_edit(
     dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
 ):
     """Rename or move an organizational unit."""
+    dry_run = dry_run or False
     print("/triggers/ou/edit called")
     print(payload.json(indent=4))
 
-    uuid = str(payload.uuid)
+    uuid = payload.uuid
     data = payload.request["data"]
 
     at = datetime.strptime(data["validity"]["from"], "%Y-%m-%d").date()
@@ -137,6 +140,7 @@ async def triggers_address_create(
     mora_helper=Depends(get_mora_helper_default),
 ):
     """Create an addresses."""
+    dry_run = dry_run or False
     print("/triggers/address/create called")
     print(payload.json(indent=4))
 
@@ -170,6 +174,7 @@ async def triggers_address_edit(
     mora_helper=Depends(get_mora_helper_default),
 ):
     """Edit an address."""
+    dry_run = dry_run or False
     print("/triggers/address/edit called")
     print(payload.json(indent=4))
 

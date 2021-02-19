@@ -6,10 +6,11 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseSettings, HttpUrl
+from pydantic.tools import parse_obj_as
 
 
 class Settings(BaseSettings):
-    mora_url: HttpUrl = "https://morademo.magenta.dk/"
+    mora_url: HttpUrl = parse_obj_as(HttpUrl, "https://morademo.magenta.dk/")
     saml_token: Optional[str]
 
     triggered_uuids: List[UUID]
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     sd_username: str
     sd_password: str
     sd_institution: str
-    sd_base_url: str = "https://service.sd.dk/sdws/"
+    sd_base_url: HttpUrl = parse_obj_as(HttpUrl, "https://service.sd.dk/sdws/")
 
 
 def get_settings(**overrides):
