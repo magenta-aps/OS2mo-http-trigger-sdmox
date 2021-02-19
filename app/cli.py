@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
+import json
+
 import click
 from sd_mox import SDMox
 from util import async_to_sync, first_of_month
@@ -53,8 +55,6 @@ async def check_name(ctx, unit_uuid, print_department, unit_name):
         unit_name=unit_name,
     )
     if print_department:
-        import json
-
         print(json.dumps(department, indent=4))
 
     if errors:

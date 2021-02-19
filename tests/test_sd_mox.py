@@ -11,7 +11,8 @@ from freezegun import freeze_time
 from xmltodict import parse
 
 import sys
-sys.path.insert(0, 'app')
+
+sys.path.insert(0, "app")
 from app.sd_mox import SDMox
 
 xmlparse = partial(parse, dict_constructor=dict)
@@ -44,12 +45,10 @@ mox_overrides = {
     "triggered_uuids": [],
     "ou_levelkeys": [],
     "ou_time_planning_mo_vs_sd": {},
-
     "amqp_username": "guest",
     "amqp_password": "guest",
     "amqp_host": "example.org",
     "amqp_virtual_host": "example.org",
-
     "sd_username": "",
     "sd_password": "",
     "sd_institution": "",
@@ -63,9 +62,8 @@ class Tests(TestCase):
         self.mox = SDMox(from_date, overrides=mox_overrides)
 
         from collections import OrderedDict
-        self.mox.sd_levels = OrderedDict([
-            ("Afdelings-niveau", "uuid-b")
-        ])
+
+        self.mox.sd_levels = OrderedDict([("Afdelings-niveau", "uuid-b")])
         self.mox.level_by_uuid = {
             "uuid-b": "Afdelings-niveau",
         }
@@ -92,7 +90,7 @@ class Tests(TestCase):
                 "value": "0123456789",
             },
         ]
-        scoped, keyed = self.mox.grouped_addresses(addresses)
+        scoped, keyed = self.mox._grouped_addresses(addresses)
 
         self.assertEqual(
             {
@@ -117,7 +115,7 @@ class Tests(TestCase):
         )
 
     def test_payload_create(self):
-        pc = self.mox.payload_create(
+        pc = self.mox._payload_create(
             unit_uuid="12345-22-22-22-12345",
             unit={
                 "name": "A-sdm2",
@@ -155,7 +153,7 @@ class Tests(TestCase):
         self.assertEqual(expected, xmlparse(actual))
 
     def test_payload_edit_simple(self):
-        pe = self.mox.payload_edit(
+        pe = self.mox._payload_edit(
             unit_uuid="12345-22-22-22-12345",
             unit={
                 "name": "A-sdm2",
@@ -187,7 +185,7 @@ class Tests(TestCase):
         self.assertEqual(expected, xmlparse(actual))
 
     def test_payload_edit_address(self):
-        pe = self.mox.payload_edit(
+        pe = self.mox._payload_edit(
             unit_uuid="12345-22-22-22-12345",
             unit={
                 "name": "A-sdm2",
@@ -245,7 +243,7 @@ class Tests(TestCase):
         self.assertEqual(expected, xmlparse(actual))
 
     def test_payload_edit_integration_values(self):
-        pe = self.mox.payload_edit(
+        pe = self.mox._payload_edit(
             unit_uuid="12345-33-33-33-12345",
             unit={
                 "name": "A-sdm3",
@@ -288,7 +286,7 @@ class Tests(TestCase):
         self.assertEqual(expected, xmlparse(actual))
 
     def test_payload_move_orgunit(self):
-        pc = self.mox.payload_create(
+        pc = self.mox._payload_create(
             unit_uuid="12345-22-22-22-12345",
             unit={
                 "name": "A-sdm2",
