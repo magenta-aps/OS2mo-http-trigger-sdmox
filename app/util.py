@@ -30,7 +30,7 @@ def get_mora_helper(mora_url=None):
 get_mora_helper_default = partial(get_mora_helper, None)
 
 
-@lru_cache
+@lru_cache(maxsize=0)
 def get_organisation_uuid(mora_url=None):
     mora_helper = get_mora_helper(mora_url=mora_url)
     org_uuid = mora_helper.read_organisation()
