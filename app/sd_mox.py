@@ -47,7 +47,9 @@ class SDMoxInterface(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def edit_address(self, unit_uuid, address_uuid, address_data, at, dry_run=False):
+    async def edit_address(
+        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+    ):
         raise NotImplementedError()
 
 
@@ -180,7 +182,9 @@ class SDMox(SDMoxInterface):
 
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
-        code_errors = await self._validate_unit_code(unit_data["user_key"], can_exist=True)
+        code_errors = await self._validate_unit_code(
+            unit_data["user_key"], can_exist=True
+        )
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
@@ -197,7 +201,9 @@ class SDMox(SDMoxInterface):
 
         # doing a read department here will give the non-unique error
         # here - where we still have access to the mo-error reporting
-        code_errors = await self._validate_unit_code(unit_data["user_key"], can_exist=True)
+        code_errors = await self._validate_unit_code(
+            unit_data["user_key"], can_exist=True
+        )
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
 
@@ -219,13 +225,13 @@ class SDMox(SDMoxInterface):
         if details:
             addresses = details
             # Create adresses on the new organizational unit
-            await self._update_ou(
-                unit_uuid, unit_data, addresses, dry_run=dry_run
-            )
+            await self._update_ou(unit_uuid, unit_data, addresses, dry_run=dry_run)
         # check unit here
         return await mox.check_unit(operation="import", **payload)
 
-    async def create_address(self, unit_uuid, address_uuid, address_data, at, dry_run=False):
+    async def create_address(
+        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+    ):
         """Called when a new address is added to an existing organizational unit.
 
         Args:
@@ -251,11 +257,11 @@ class SDMox(SDMoxInterface):
         # see 'grouped_addresses'
         addresses = [address_data] + previous_addresses
 
-        return await self._update_ou(
-            unit_uuid, unit_data, addresses, dry_run=dry_run
-        )
+        return await self._update_ou(unit_uuid, unit_data, addresses, dry_run=dry_run)
 
-    async def edit_address(self, unit_uuid, address_uuid, address_data, at, dry_run=False):
+    async def edit_address(
+        self, unit_uuid, address_uuid, address_data, at, dry_run=False
+    ):
         """Called when an address is edited on an existing organizational unit.
 
         Args:
@@ -273,7 +279,7 @@ class SDMox(SDMoxInterface):
         return await self.create_address(
             unit_uuid, address_uuid, address_data, at, dry_run=dry_run
         )
- 
+
     # ----------------------- #
     # Interface methods above #
     # ----------------------- #

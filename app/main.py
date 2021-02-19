@@ -265,7 +265,8 @@ def triggers():
     summary="Create an organizational unit.",
 )
 async def triggers_ou_create(
-    payload: MOTriggerPayloadOUCreate, mora_helper=Depends(partial(get_mora_helper, None))
+    payload: MOTriggerPayloadOUCreate,
+    mora_helper=Depends(partial(get_mora_helper, None)),
 ):
     """Create an organizational unit."""
     print("/triggers/ou/create called")

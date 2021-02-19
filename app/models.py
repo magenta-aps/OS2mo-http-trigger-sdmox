@@ -2,8 +2,12 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-from os2mo_http_trigger_protocol import (EventType, MOTriggerPayload,
-                                         MOTriggerRegister, RequestType)
+from os2mo_http_trigger_protocol import (
+    EventType,
+    MOTriggerPayload,
+    MOTriggerRegister,
+    RequestType,
+)
 from pydantic import BaseModel
 
 
