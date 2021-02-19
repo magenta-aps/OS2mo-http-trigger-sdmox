@@ -9,8 +9,10 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import date, datetime
 from operator import itemgetter
+from typing import Any, Callable, Dict, List, Optional
+from typing import OrderedDict as OrderedDictType
+from typing import Tuple, cast
 from uuid import UUID
-from typing import Optional
 
 import pika
 import requests
@@ -19,8 +21,8 @@ from os2mo_helpers.mora_helpers import MoraHelper
 from sd_connector import SDConnector
 
 import app.sd_mox_payloads as smp
-from app.config import get_settings
-from app.util import get_mora_helper
+from app.config import Settings, get_settings
+from app.util import apply, get_mora_helper
 
 logger = logging.getLogger("sdMox")
 logger.setLevel(logging.DEBUG)
@@ -65,12 +67,18 @@ class SDMoxInterface(ABC):
 
 
 class SDMox(SDMoxInterface):
-    def __init__(self, from_date=None, to_date=None, overrides=None, settings=None):
+    def __init__(
+        self,
+        from_date: Optional[date] = None,
+        to_date: Optional[date] = None,
+        overrides: Optional[Dict] = None,
+        settings: Optional[Settings] = None,
+    ):
         # Load settings and overrides
-        overrides = overrides or {}
-        self.settings = settings or get_settings(**overrides)
+        soverrides: Dict = overrides or {}
+        self.settings: Settings = settings or get_settings(**soverrides)
 
-        self.sd_connector = SDConnector(
+        self.sd_connector: SDConnector = SDConnector(
             self.settings.sd_institution,
             self.settings.sd_username,
             self.settings.sd_password,
@@ -78,38 +86,42 @@ class SDMox(SDMoxInterface):
         )
 
         # Fetch levels from MO
-        self.sd_levels = self._read_ou_levelkeys()
-        self.level_by_uuid = {v: k for k, v in self.sd_levels.items()}
-        self.arbtid_by_uuid = self._read_arbtid_by_uuid()
+        self.sd_levels: OrderedDictType[str, str] = self._read_ou_levelkeys()
+        self.level_by_uuid: Dict[str, str] = {v: k for k, v in self.sd_levels.items()}
+        self.arbtid_by_uuid: Dict[str, str] = self._read_arbtid_by_uuid()
 
         # AMQP exchange
-        self.exchange_name = "org-struktur-changes-topic"
+        self.exchange_name: str = "org-struktur-changes-topic"
 
         if from_date:
             self._update_virkning(from_date)
 
     def _get_mora_helper(self) -> MoraHelper:
-        mora_helper = get_mora_helper(self.settings.mora_url)
-        return mora_helper
+        return get_mora_helper(self.settings.mora_url)
 
-    def _read_ou_levelkeys(self) -> OrderedDict:
+    def _fetch_class_map(self, facet_bvn: str) -> Dict[str, str]:
         mora_helpers: MoraHelper = self._get_mora_helper()
 
-        classes, _ = mora_helpers.read_classes_in_facet("org_unit_level")
-        classes = dict(map(itemgetter("user_key", "uuid"), classes))
+        dict_lookup: Callable[[Any], Tuple[Any, ...]] = itemgetter("user_key", "uuid")
+        classes: List[dict]
+        classes, _ = mora_helpers.read_classes_in_facet(facet_bvn)
+        return dict(map(cast(Callable[[dict], Tuple[str, str]], dict_lookup), classes))
+
+    def _read_ou_levelkeys(self) -> OrderedDictType[str, str]:
+        classes: Dict[str, str] = self._fetch_class_map("org_unit_level")
         return OrderedDict(
             map(lambda key: (key, classes[key]), self.settings.ou_levelkeys)
         )
 
-    def _read_arbtid_by_uuid(self) -> dict:
-        mora_helpers: MoraHelper = self._get_mora_helper()
+    def _read_arbtid_by_uuid(self) -> Dict[str, str]:
+        classes: Dict[str, str] = self._fetch_class_map("time_planning")
 
-        classes, _ = mora_helpers.read_classes_in_facet("time_planning")
-        classes = dict(map(itemgetter("user_key", "uuid"), classes))
-
-        arbtid_by_uuid = {}
-        for key, sd_value in self.settings.ou_time_planning_mo_vs_sd.items():
-            arbtid_by_uuid[classes[key]] = sd_value
+        arbtid_by_uuid = dict(
+            map(
+                apply(lambda key, sd_value: (classes[key], sd_value)),
+                self.settings.ou_time_planning_mo_vs_sd.items(),
+            )
+        )
         return arbtid_by_uuid
 
     def _update_virkning(self, from_date: date, to_date: Optional[date] = None):
@@ -283,7 +295,9 @@ class SDMox(SDMoxInterface):
         # see 'grouped_addresses'
         addresses = [address_data] + previous_addresses
 
-        return await self._update_ou(unit_uuid_str, unit_data, addresses, dry_run=dry_run)
+        return await self._update_ou(
+            unit_uuid_str, unit_data, addresses, dry_run=dry_run
+        )
 
     async def edit_address(
         self, unit_uuid: UUID, address_data: dict, at: date, dry_run: bool = False
@@ -301,9 +315,7 @@ class SDMox(SDMoxInterface):
                   SDMoxError with description of the issue otherwise.
         """
         # Call create as the procedure is the same
-        return await self.create_address(
-            unit_uuid, address_data, at, dry_run=dry_run
-        )
+        return await self.create_address(unit_uuid, address_data, at, dry_run=dry_run)
 
     # ----------------------- #
     # Interface methods above #

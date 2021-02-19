@@ -5,7 +5,7 @@
 import asyncio
 from datetime import date
 from functools import lru_cache, partial, wraps
-from typing import Awaitable, Callable, TypeVar
+from typing import Any, Awaitable, Callable, Tuple, TypeVar
 from uuid import UUID
 
 from os2mo_helpers.mora_helpers import MoraHelper
@@ -59,5 +59,32 @@ def async_to_sync(
     @wraps(func)
     def wrapper(*args, **kwargs) -> CallableReturnType:
         return asyncio.run(func(*args, **kwargs))
+
+    return wrapper
+
+
+def apply(
+    func: Callable[..., CallableReturnType]
+) -> Callable[[Tuple], CallableReturnType]:
+    """Decorator to apply tuple to function.
+
+    Example:
+
+        @apply
+        async def dual(key, value):
+            return value
+
+        print(dual(('k', 'v')))  # --> 'v'
+
+    Args:
+        func (function): The function to apply arguments for.
+
+    Returns:
+        :obj:`sync function`: The function which has had it argument applied.
+    """
+
+    @wraps(func)
+    def wrapper(tup: Tuple) -> CallableReturnType:
+        return func(*tup)
 
     return wrapper

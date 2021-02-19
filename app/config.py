@@ -33,6 +33,5 @@ class Settings(BaseSettings):
     sd_base_url: HttpUrl = parse_obj_as(HttpUrl, "https://service.sd.dk/sdws/")
 
 
-def get_settings(**overrides):
-    settings = Settings(**overrides)
-    return settings
+def get_settings(**overrides) -> Settings:
+    return Settings(**overrides)
