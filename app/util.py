@@ -4,7 +4,7 @@
 
 import asyncio
 import datetime
-from functools import lru_cache, wraps
+from functools import lru_cache, wraps, partial
 
 from os2mo_helpers.mora_helpers import MoraHelper
 
@@ -21,9 +21,13 @@ def first_of_month():
     return first_day_of_this_month
 
 
+@lru_cache(maxsize=0)
 def get_mora_helper(mora_url=None):
     mora_url = mora_url or get_settings().mora_url
     return MoraHelper(hostname=mora_url, use_cache=False)
+
+
+get_mora_helper_default = partial(get_mora_helper, None)
 
 
 @lru_cache
