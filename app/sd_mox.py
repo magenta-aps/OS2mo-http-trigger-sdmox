@@ -7,7 +7,7 @@ import logging
 import pprint
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from datetime import date, datetime
+from datetime import date, datetime, time
 from operator import itemgetter
 from typing import Any, Callable, Dict, List, Optional
 from typing import OrderedDict as OrderedDictType
@@ -125,7 +125,14 @@ class SDMox(SDMoxInterface):
         return arbtid_by_uuid
 
     def _update_virkning(self, from_date: date, to_date: Optional[date] = None):
-        self.virkning = smp.sd_virkning(from_date, to_date)
+        # TODO: This code smells, type analysis found that the types are not right
+        #       I decided to go with midnight, but who knows what would be right.
+        # TODO: We really should eliminate the self.virkning and self._times global
+        #       state from this class, and rather provide it as needed.
+        self.virkning = smp.sd_virkning(
+            datetime.combine(from_date, time.min),
+            datetime.combine(to_date, time.min) if to_date else None,
+        )
         if to_date is None:
             to_date = date(9999, 12, 31)
         if not from_date.day == 1:
