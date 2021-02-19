@@ -5,13 +5,15 @@
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseSettings, HttpUrl
+from pydantic import BaseSettings, HttpUrl, PositiveInt
 from pydantic.tools import parse_obj_as
+
+from app.pydantic_types import Domain, Port
 
 
 class Settings(BaseSettings):
     mora_url: HttpUrl = parse_obj_as(HttpUrl, "https://morademo.magenta.dk/")
-    saml_token: Optional[str]
+    saml_token: Optional[UUID] = None
 
     triggered_uuids: List[UUID]
     ou_levelkeys: List[str]
@@ -19,11 +21,11 @@ class Settings(BaseSettings):
 
     amqp_username: str
     amqp_password: str
-    amqp_host: str = "msg-amqp.silkeborgdata.dk"
+    amqp_host: Domain = Domain("msg-amqp.silkeborgdata.dk")
     amqp_virtual_host: str
-    amqp_port: int = 5672
-    amqp_check_waittime: int = 3
-    amqp_check_retries: int = 6
+    amqp_port: Port = Port(5672)
+    amqp_check_waittime: PositiveInt = PositiveInt(3)
+    amqp_check_retries: PositiveInt = PositiveInt(6)
 
     sd_username: str
     sd_password: str

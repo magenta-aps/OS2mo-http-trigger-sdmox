@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, "/")
 
-from typing import Dict
+from typing import Any, Dict
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
@@ -61,7 +61,7 @@ def root() -> RedirectResponse:
 
 
 @app.get("/info", tags=["Meta"], summary="Print info about this entity")
-def info() -> Dict:
+def info() -> Dict[str, Any]:
     """Print info about this entity."""
     return {
         "title": app.title,
