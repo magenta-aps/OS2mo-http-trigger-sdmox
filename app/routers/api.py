@@ -8,8 +8,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, FastAPI, Path, Query
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from app.dependencies import (_ou_edit_name, _ou_edit_parent, _verify_ou_ok,
-                              _verify_ou_ok_responses, get_date)
+from app.dependencies import (
+    _ou_edit_name,
+    _ou_edit_parent,
+    _verify_ou_ok,
+    _verify_ou_ok_responses,
+    get_date,
+)
 from app.util import first_of_month, get_mora_helper_default
 
 router = APIRouter()

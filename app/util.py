@@ -4,7 +4,7 @@
 
 import asyncio
 import datetime
-from functools import lru_cache, wraps, partial
+from functools import lru_cache, partial, wraps
 
 from os2mo_helpers.mora_helpers import MoraHelper
 

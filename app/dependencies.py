@@ -6,9 +6,9 @@ from functools import partial
 from typing import Optional
 from uuid import UUID
 
-from requests.exceptions import ConnectionError
 from fastapi import Depends, HTTPException, Query, status
 from os2mo_helpers.mora_helpers import MoraHelper
+from requests.exceptions import ConnectionError
 
 from app.config import get_settings
 from app.models import DetailError
