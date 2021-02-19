@@ -3,4 +3,4 @@
 # SPDX-License-Identifier: MPL-2.0
 
 pika
-os2mo-http-trigger-protocol
+os2mo-http-trigger-protocol==0.0.2

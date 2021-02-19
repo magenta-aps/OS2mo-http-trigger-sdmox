@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # Triggerkoden i dette modul har to funktioner:
-# 1) At oprette/rette/flytte en afdeling i SD, inden det sker i OS2mo
-# 2) At forhinde oprettelse/flytning/rettelse i OS2mo, hvis det ikke
-# lykkedes i SD
+# 1) At oprette/rette/flytte en afdeling i SD, inden det sker i OS2mo.
+# 2) At forhinde oprettelse/flytning/rettelse i OS2mo, hvis det ikke lykkedes i SD.
 #
 # Adressernes rækkefølge har betydning.
-#     Der skal findes en postadresse inden man opretter et Pnummer,
-#     ellers går tilbagemeldingen fra SD tilsyneladende i ged.
-#     Der er indført et check for det i sd_mox.py
+#
+# Der skal findes en postadresse inden man opretter et PNummer,
+# ellers går tilbagemeldingen fra SD tilsyneladende i ged.
+# - Der er indført et check for det i sd_mox.py
 
 from datetime import date, datetime
 from functools import partial
@@ -23,7 +23,7 @@ from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
 from models import *
 from os2mo_helpers.mora_helpers import MoraHelper
-from sd_mox import SDMox
+from sd_mox import SDMox, SDMoxInterface
 from util import first_of_month, get_mora_helper
 
 tags_metadata = [
@@ -151,7 +151,7 @@ def verify_ou_ok_trigger(
     payload: MOTriggerPayload, mora_helper=Depends(partial(get_mora_helper, None))
 ):
     uuid = payload.uuid
-    data = payload.request.data
+    data = payload.request["data"]
 
     at = data["validity"]["from"]
     _verify_ou_ok(uuid, at, mora_helper)
@@ -164,8 +164,7 @@ async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date):
     assert new_name is not None, "_ou_edit_name called without new_name"
 
     print("Changing name")
-    mox = SDMox(from_date=at)
-    mox.amqp_connect()
+    mox: SDMoxInterface = SDMox(from_date=at)
     await mox.rename_unit(str(ou_uuid), new_name, at=at)
 
 
@@ -173,8 +172,7 @@ async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date):
     assert new_parent is not None, "_ou_edit_name called without new_parent"
 
     print("Changing parent")
-    mox = SDMox(from_date=at)
-    mox.amqp_connect()
+    mox: SDMoxInterface = SDMox(from_date=at)
     await mox.move_unit(str(ou_uuid), new_parent, at=at)
 
 
@@ -261,43 +259,41 @@ def triggers():
     ]
 
 
-@app.post("/triggers/ou/create", tags=["Trigger API"])
-def ou_create():
-    #    """An ou is about to be created"""
-    #    mora_org = sdmox_config.get("ORG_UUID")
-    #    if mora_org is None:
-    #        mora_org = sdmox_config.setdefault(
-    #            "ORG_UUID", mo_request("o").json()[0]["uuid"]
-    #        )
-    #
-    #    if (
-    #        # we will never create at top level
-    #        not data["request"]["parent"]
-    #        or mora_org == data["request"]["parent"]["uuid"]
-    #    ):
-    #        return
-    #
-    #    parent = mo_request("ou/" + data["request"]["parent"]["uuid"]).json()
-    #
-    #    if not is_sd_triggered(parent):
-    #        return
-    #
-    #    # try to create a unit in sd
-    #    from_date = datetime.datetime.strptime(
-    #        data["request"]["validity"]["from"], "%Y-%m-%d"
-    #    )
-    #    mox = sd_mox.sdMox.create(from_date=from_date)
-    #
-    #    payload = mox.payload_create(data["uuid"], data["request"], parent)
-    #    mox.create_unit(test_run=False, **payload)
-    #
-    #    if not data["request"].get("details", []):
-    #        # check unit here
-    #        mox.check_unit(operation="import", **payload)
-    #    else:
-    #        # check unit after editing addresses
-    #        address_before_create(data, unit_given=True)
-    return {"ou": "create"}
+@app.post(
+    "/triggers/ou/create",
+    tags=["Trigger API"],
+    summary="Create an organizational unit.",
+)
+async def triggers_ou_create(
+    payload: MOTriggerPayloadOUCreate, mora_helper=Depends(partial(get_mora_helper, None))
+):
+    """Create an organizational unit."""
+    print("/triggers/ou/create called")
+    print(payload.json(indent=4))
+
+    # We will never create a top level organization unit with SDMox.
+    # Thus we cannot accept requests with no parent set, or the parent set to the
+    # root organization.
+    parent_uuid = payload.request.get("parent", {}).get("uuid")
+    o_uuid = mora_helper.read_organisation()
+    if not parent_uuid or parent_uuid == o_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot create an organizational unit at top-level.",
+        )
+
+    # We will never create an organization under a non-triggered uuid.
+    at = datetime.strptime(payload.request["validity"]["from"], "%Y-%m-%d").date()
+    _verify_ou_ok(parent_uuid, at, mora_helper)
+
+    # Preconditions have been checked, time to try to create the organizational unit
+    uuid = str(payload.uuid)
+    unit_data = payload.request
+    parent_data = mora_helper.read_ou(parent_uuid, at=at)
+    mox: SDMoxInterface = SDMox(from_date=at)
+    await mox.create_unit(uuid, unit_data, parent_data)
+
+    return {"status": "OK"}
 
 
 @app.post(
@@ -307,10 +303,13 @@ def ou_create():
     tags=["Trigger API"],
     summary="Rename or move an organizational unit.",
 )
-async def triggers_ou_edit(payload: MOTriggerPayload):
+async def triggers_ou_edit(payload: MOTriggerPayloadOUEdit):
     """Rename or move an organizational unit."""
+    print("/triggers/ou/edit called")
+    print(payload.json(indent=4))
+
     uuid = str(payload.uuid)
-    data = payload.request.data
+    data = payload.request["data"]
 
     at = datetime.strptime(data["validity"]["from"], "%Y-%m-%d").date()
 
@@ -325,82 +324,69 @@ async def triggers_ou_edit(payload: MOTriggerPayload):
     return {"status": "OK"}
 
 
-@app.post("/triggers/address/create", tags=["Trigger API"])
-def address_create():
-    #    """Addresses are about to be created
-    #    if unit is also new, it is given as a whole
-    #    """
-    #
-    #    # whole department changes validity - including addresses
-    #    from_date = data["request"]["validity"]["from"]
-    #
-    #    if unit_given:
-    #
-    #        # a new unit has been created
-    #        ou = data["uuid"]
-    #        unit = data["request"]
-    #        addresses = unit["details"]
-    #
-    #    else:
-    #
-    #        # a new address is being added to an existing unit
-    #        ou = data.get("org_unit_uuid")
-    #        if not ou:
-    #            return
-    #        try:
-    #            unit = mo_request("ou/" + ou, at=from_date).json()
-    #            if not is_sd_triggered(unit):
-    #                return
-    #        except requests.exceptions.HTTPError as e:
-    #            if e.response.status_code == 404:
-    #                return  # new unit - checked elsewhere
-    #            raise
-    #
-    #        previous_addresses = mo_request(
-    #            "ou/" + ou + "/details/address", at=from_date
-    #        ).json()
-    #
-    #        # the new address is prepended to addresses and
-    #        # thereby given higher priority in sd_mox.py
-    #        # see 'grouped_addresses'
-    #        addresses = [data["request"]] + previous_addresses
-    #
-    #    from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d")
-    #    mox = sd_mox.sdMox.create(from_date=from_date)
-    #
-    #    payload = mox.payload_edit(ou, unit, addresses)
-    #    mox.edit_unit(test_run=False, **payload)
-    #    mox.check_unit(operation="ret", **payload)
-    return {"address": "create"}
+@app.post(
+    "/triggers/address/create",
+    tags=["Trigger API"],
+    summary="Create an addresses.",
+)
+async def triggers_address_create(
+    payload: MOTriggerPayloadAddressCreate,
+    mora_helper=Depends(partial(get_mora_helper, None)),
+):
+    """Create an addresses."""
+    print("/triggers/address/create called")
+    print(payload.json(indent=4))
+
+    unit_uuid = payload.request.get("org_unit", {}).get("uuid")
+    if not unit_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing organization unit UUID when adding address.",
+        )
+    # We will never create an addresses for units outside non-triggered uuid.
+    # TODO: Consider whether we should block inserts in these cases, probably not
+    at = datetime.strptime(payload.request["validity"]["from"], "%Y-%m-%d").date()
+    _verify_ou_ok(unit_uuid, at, mora_helper)
+
+    # Preconditions have been checked, time to try to create the organizational unit
+    address_uuid = str(payload.uuid)
+    address_data = payload.request
+    mox: SDMoxInterface = SDMox(from_date=at)
+    await mox.create_address(unit_uuid, address_uuid, address_data, at)
+
+    return {"status": "OK"}
 
 
-@app.post("/triggers/address/edit", tags=["Trigger API"])
-def address_edit(uuid: UUID):
-    #    """An address is about to be changed"""
-    #    ou = data.get("org_unit_uuid")
-    #    if not ou:
-    #        return
-    #    from_date = data["request"]["data"]["validity"]["from"]
-    #    unit = mo_request("ou/" + ou, at=from_date).json()
-    #    if not is_sd_triggered(unit):
-    #        return
-    #
-    #    # the changed address is prepended to addresses and
-    #    # thereby given higher priority in sd_mox.py
-    #    # see 'grouped_addresses'
-    #    addresses = [data["request"]["data"]] + mo_request(
-    #        "ou/" + ou + "/details/address", at=from_date
-    #    ).json()
-    #    from_date = datetime.datetime.strptime(from_date, "%Y-%m-%d")
-    #    mox = sd_mox.sdMox.create(from_date=from_date)
-    #
-    #    # doing a read department here will give the non-unique error
-    #    # here - where we still have access to the mo-error reporting
-    #    code_errors = mox._validate_unit_code(unit["user_key"], can_exist=True)
-    #    if code_errors:
-    #        raise sd_mox.SdMoxError(", ".join(code_errors))
-    #
-    #    payload = mox.payload_edit(ou, unit, addresses)
-    #    mox.edit_unit(test_run=False, **payload)
-    #    mox.check_unit(operation="ret", **payload)
-    return {"address": "edit"}
+@app.post(
+    "/triggers/address/edit",
+    tags=["Trigger API"],
+    summary="Edit an address.",
+)
+async def triggers_address_edit(
+    payload: MOTriggerPayloadAddressEdit,
+    mora_helper=Depends(partial(get_mora_helper, None)),
+):
+    """Edit an address."""
+    print("/triggers/address/edit called")
+    print(payload.json(indent=4))
+
+    unit_uuid = payload.request.get("org_unit", {}).get("uuid")
+    if not unit_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing organization unit UUID when adding address.",
+        )
+    # We will never create an addresses for units outside non-triggered uuid.
+    # TODO: Consider whether we should block inserts in these cases, probably not
+    at = datetime.strptime(
+        payload.request["data"]["validity"]["from"], "%Y-%m-%d"
+    ).date()
+    _verify_ou_ok(unit_uuid, at, mora_helper)
+
+    # Preconditions have been checked, time to try to create the organizational unit
+    address_uuid = str(payload.uuid)
+    address_data = payload.request["data"]
+    mox: SDMoxInterface = SDMox(from_date=at)
+    await mox.create_address(unit_uuid, address_uuid, address_data, at)
+
+    return {"status": "OK"}
