@@ -12,12 +12,13 @@ from operator import itemgetter
 
 import pika
 import requests
-import sd_mox_payloads as smp
 import xmltodict
-from config import get_settings
 from os2mo_helpers.mora_helpers import MoraHelper
 from sd_connector import SDConnector
-from util import get_mora_helper, get_organisation_uuid
+
+import app.sd_mox_payloads as smp
+from app.config import get_settings
+from app.util import get_mora_helper, get_organisation_uuid
 
 logger = logging.getLogger("sdMox")
 logger.setLevel(logging.DEBUG)

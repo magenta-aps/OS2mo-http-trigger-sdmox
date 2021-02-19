@@ -2,11 +2,16 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
+import sys
+
+sys.path.insert(0, "/")
+
 import json
 
 import click
-from sd_mox import SDMox
-from util import async_to_sync, first_of_month
+
+from app.sd_mox import SDMox
+from app.util import async_to_sync, first_of_month
 
 clickDate = click.DateTime(formats=["%Y-%m-%d"])
 

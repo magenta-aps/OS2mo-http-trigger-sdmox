@@ -6,8 +6,9 @@ import asyncio
 import datetime
 from functools import lru_cache, wraps
 
-from config import get_settings
 from os2mo_helpers.mora_helpers import MoraHelper
+
+from app.config import get_settings
 
 
 def today():

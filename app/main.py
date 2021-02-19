@@ -12,6 +12,10 @@
 # ellers går tilbagemeldingen fra SD tilsyneladende i ged.
 # - Der er indført et check for det i sd_mox.py
 
+import sys
+
+sys.path.insert(0, "/")
+
 from datetime import date, datetime
 from functools import partial
 from typing import Dict, List, Optional
@@ -22,10 +26,10 @@ from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from config import get_settings
-from models import *
-from sd_mox import SDMox, SDMoxInterface
-from util import first_of_month, get_mora_helper
+from app.config import get_settings
+from app.models import *
+from app.sd_mox import SDMox, SDMoxInterface
+from app.util import first_of_month, get_mora_helper
 
 tags_metadata = [
     {

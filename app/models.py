@@ -22,6 +22,7 @@ class DetailError(BaseModel):
 
 class MOTriggerPayloadOUCreate(MOTriggerPayload):
     """Organizational unit create payload."""
+
     # TODO: Could probably be done using a generic model:
     # * https://pydantic-docs.helpmanual.io/usage/models/#generic-models
     # This will however require us to create the correct submodel at creation time
