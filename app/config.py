@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-from functools import lru_cache
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import AnyUrl, BaseSettings, HttpUrl
+from pydantic import BaseSettings, HttpUrl
 
 
 class Settings(BaseSettings):

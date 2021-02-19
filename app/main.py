@@ -18,11 +18,12 @@ from typing import Dict, List, Optional
 from uuid import UUID
 
 import requests
-from config import get_settings
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import RedirectResponse
-from models import *
 from os2mo_helpers.mora_helpers import MoraHelper
+
+from config import get_settings
+from models import *
 from sd_mox import SDMox, SDMoxInterface
 from util import first_of_month, get_mora_helper
 
@@ -85,7 +86,7 @@ def get_date(
     return first_of_month()
 
 
-def _verify_ou_ok(uuid: UUID, at: date, mora_helper):
+def _verify_ou_ok(uuid: UUID, at: date, mora_helper: MoraHelper):
     try:
         # TODO: AIOHTTP MoraHelpers?
         mo_ou = mora_helper.read_ou(uuid, at=at)
@@ -139,7 +140,7 @@ _verify_ou_ok.responses = {
 def verify_ou_ok(
     uuid: UUID,
     at: date = Depends(get_date),
-    mora_helper=Depends(partial(get_mora_helper, None)),
+    mora_helper: MoraHelper = Depends(partial(get_mora_helper, None)),
 ):
     _verify_ou_ok(uuid, at, mora_helper)
 
@@ -148,7 +149,8 @@ verify_ou_ok.responses = _verify_ou_ok.responses
 
 
 def verify_ou_ok_trigger(
-    payload: MOTriggerPayload, mora_helper=Depends(partial(get_mora_helper, None))
+    payload: MOTriggerPayload,
+    mora_helper: MoraHelper = Depends(partial(get_mora_helper, None)),
 ):
     uuid = payload.uuid
     data = payload.request["data"]
@@ -160,20 +162,20 @@ def verify_ou_ok_trigger(
 verify_ou_ok_trigger.responses = _verify_ou_ok.responses
 
 
-async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date):
+async def _ou_edit_name(ou_uuid: UUID, new_name: str, at: date, dry_run: bool):
     assert new_name is not None, "_ou_edit_name called without new_name"
 
     print("Changing name")
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.rename_unit(str(ou_uuid), new_name, at=at)
+    await mox.rename_unit(str(ou_uuid), new_name, at=at, dry_run=dry_run)
 
 
-async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date):
+async def _ou_edit_parent(ou_uuid: UUID, new_parent: UUID, at: date, dry_run: bool):
     assert new_parent is not None, "_ou_edit_name called without new_parent"
 
     print("Changing parent")
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.move_unit(str(ou_uuid), new_parent, at=at)
+    await mox.move_unit(str(ou_uuid), new_parent, at=at, dry_run=dry_run)
 
 
 @app.get(
@@ -194,12 +196,11 @@ async def root() -> RedirectResponse:
 async def ou_edit_name(
     uuid: UUID = Path(..., description="UUID of the organizational unit to rename."),
     new_name: str = Query(..., description="The name we wish to change to."),
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
     at: date = Depends(get_date),
 ):
     """Rename an organizational unit."""
-    # TODO: Document using Query() instead?
-    # See: https://github.com/tiangolo/fastapi/issues/1007
-    await _ou_edit_name(uuid, new_name, at)
+    await _ou_edit_name(uuid, new_name, at, dry_run=dry_run)
     return {"status": "OK"}
 
 
@@ -213,10 +214,11 @@ async def ou_edit_name(
 async def ou_edit_parent(
     uuid: UUID = Path(..., description="UUID of the organizational unit to move."),
     new_parent: UUID = Query(..., description="The parent unit we wish to move under."),
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
     at: date = Depends(get_date),
 ):
     """Move an organizational unit."""
-    await _ou_edit_parent(uuid, new_parent, at)
+    await _ou_edit_parent(uuid, new_parent, at, dry_run=dry_run)
     return {"status": "OK"}
 
 
@@ -229,33 +231,23 @@ async def ou_edit_parent(
         "Successful Response" + "<br/>" + "List of triggers to register."
     ),
 )
-def triggers():
+def triggers() -> List[MOTriggerRegister]:
     """List triggers to be registered."""
+    # All our triggers are ON_BEFORE
+    triggers = [
+        (RequestType.CREATE, "org_unit", triggers_ou_create),
+        (RequestType.EDIT, "org_unit", triggers_ou_edit),
+        (RequestType.CREATE, "address", triggers_address_create),
+        (RequestType.EDIT, "address", triggers_address_edit),
+    ]
     return [
-        {
-            "event_type": EventType.ON_BEFORE,
-            "request_type": RequestType.CREATE,
-            "role_type": "org_unit",
-            "url": "/triggers/ou/create",
-        },
-        {
-            "event_type": EventType.ON_BEFORE,
-            "request_type": RequestType.EDIT,
-            "role_type": "org_unit",
-            "url": "/triggers/ou/edit",
-        },
-        {
-            "event_type": EventType.ON_BEFORE,
-            "request_type": RequestType.CREATE,
-            "role_type": "address",
-            "url": "/triggers/address/create",
-        },
-        {
-            "event_type": EventType.ON_BEFORE,
-            "request_type": RequestType.EDIT,
-            "role_type": "address",
-            "url": "/triggers/address/edit",
-        },
+        MOTriggerRegister(
+            event_type=EventType.ON_BEFORE,
+            request_type=request_type,
+            role_type=role_type,
+            url=app.url_path_for(method.__name__),
+        )
+        for request_type, role_type, method in triggers
     ]
 
 
@@ -266,6 +258,7 @@ def triggers():
 )
 async def triggers_ou_create(
     payload: MOTriggerPayloadOUCreate,
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
     mora_helper=Depends(partial(get_mora_helper, None)),
 ):
     """Create an organizational unit."""
@@ -292,7 +285,7 @@ async def triggers_ou_create(
     unit_data = payload.request
     parent_data = mora_helper.read_ou(parent_uuid, at=at)
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_unit(uuid, unit_data, parent_data)
+    await mox.create_unit(uuid, unit_data, parent_data, dry_run=dry_run)
 
     return {"status": "OK"}
 
@@ -304,7 +297,10 @@ async def triggers_ou_create(
     tags=["Trigger API"],
     summary="Rename or move an organizational unit.",
 )
-async def triggers_ou_edit(payload: MOTriggerPayloadOUEdit):
+async def triggers_ou_edit(
+    payload: MOTriggerPayloadOUEdit,
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
+):
     """Rename or move an organizational unit."""
     print("/triggers/ou/edit called")
     print(payload.json(indent=4))
@@ -316,12 +312,12 @@ async def triggers_ou_edit(payload: MOTriggerPayloadOUEdit):
 
     if "name" in data:
         new_name = data["name"]
-        await _ou_edit_name(uuid, new_name, at)
+        await _ou_edit_name(uuid, new_name, at, dry_run=dry_run)
 
     if "parent" in data:
         new_parent_obj = data["parent"]
         new_parent_uuid = new_parent_obj["uuid"]
-        await _ou_edit_parent(uuid, new_parent_uuid, at)
+        await _ou_edit_parent(uuid, new_parent_uuid, at, dry_run=dry_run)
     return {"status": "OK"}
 
 
@@ -332,6 +328,7 @@ async def triggers_ou_edit(payload: MOTriggerPayloadOUEdit):
 )
 async def triggers_address_create(
     payload: MOTriggerPayloadAddressCreate,
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
     mora_helper=Depends(partial(get_mora_helper, None)),
 ):
     """Create an addresses."""
@@ -353,7 +350,7 @@ async def triggers_address_create(
     address_uuid = str(payload.uuid)
     address_data = payload.request
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_address(unit_uuid, address_uuid, address_data, at)
+    await mox.create_address(unit_uuid, address_uuid, address_data, at, dry_run=dry_run)
 
     return {"status": "OK"}
 
@@ -365,6 +362,7 @@ async def triggers_address_create(
 )
 async def triggers_address_edit(
     payload: MOTriggerPayloadAddressEdit,
+    dry_run: Optional[bool] = Query(False, description="Dry run the operation."),
     mora_helper=Depends(partial(get_mora_helper, None)),
 ):
     """Edit an address."""
@@ -388,6 +386,6 @@ async def triggers_address_edit(
     address_uuid = str(payload.uuid)
     address_data = payload.request["data"]
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_address(unit_uuid, address_uuid, address_data, at)
+    await mox.create_address(unit_uuid, address_uuid, address_data, at, dry_run=dry_run)
 
     return {"status": "OK"}

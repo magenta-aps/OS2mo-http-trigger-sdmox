@@ -2,12 +2,8 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-from os2mo_http_trigger_protocol import (
-    EventType,
-    MOTriggerPayload,
-    MOTriggerRegister,
-    RequestType,
-)
+from os2mo_http_trigger_protocol import (EventType, MOTriggerPayload,
+                                         MOTriggerRegister, RequestType)
 from pydantic import BaseModel
 
 
@@ -25,6 +21,12 @@ class DetailError(BaseModel):
 
 
 class MOTriggerPayloadOUCreate(MOTriggerPayload):
+    """Organizational unit create payload."""
+    # TODO: Could probably be done using a generic model:
+    # * https://pydantic-docs.helpmanual.io/usage/models/#generic-models
+    # This will however require us to create the correct submodel at creation time
+    # within MO when the original event is being emitted.
+
     class Config:
         schema_extra = {
             "example": {
@@ -55,6 +57,8 @@ class MOTriggerPayloadOUCreate(MOTriggerPayload):
 
 
 class MOTriggerPayloadOUEdit(MOTriggerPayload):
+    """Organizational unit edit payload."""
+
     class Config:
         schema_extra = {
             "example": {
@@ -76,6 +80,8 @@ class MOTriggerPayloadOUEdit(MOTriggerPayload):
 
 
 class MOTriggerPayloadAddressCreate(MOTriggerPayload):
+    """Address create payload."""
+
     class Config:
         schema_extra = {
             "example": {
@@ -105,6 +111,8 @@ class MOTriggerPayloadAddressCreate(MOTriggerPayload):
 
 
 class MOTriggerPayloadAddressEdit(MOTriggerPayload):
+    """Address edit payload."""
+
     class Config:
         schema_extra = {
             "example": {
