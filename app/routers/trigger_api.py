@@ -211,6 +211,6 @@ async def triggers_address_edit(
     # Preconditions have been checked, time to try to create the organizational unit
     address_data = payload.request["data"]
     mox: SDMoxInterface = SDMox(from_date=at)
-    await mox.create_address(unit_uuid, address_data, at, dry_run=dry_run)
+    await mox.edit_address(unit_uuid, address_data, at, dry_run=dry_run)
 
     return {"status": "OK"}
