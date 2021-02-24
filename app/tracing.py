@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
 import structlog
 from fastapi import Request
 from opentelemetry import trace
