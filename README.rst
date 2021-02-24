@@ -15,7 +15,7 @@ OS2MO's integration til SD-mox involverer brug af SD-løns AMQP-kø
 til afsendelse af ændringer og oprettelser, hvorimod læsning og verifikation foregår
 via SD's webinterface.
 
-Integrationen er synkron,  udført med triggere (se https://os2mo.readthedocs.io/en/latest/dev/triggers.html), 
+Integrationen er synkron, udført med triggere (se https://os2mo.readthedocs.io/en/latest/api/triggers.html#customization-and-triggers),
 således at forstå at man får svar umiddelbart i forbindelse med sin handling, som er en af
 
 1. oprettelse af organisatiorisk enhed
