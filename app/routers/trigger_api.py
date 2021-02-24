@@ -89,8 +89,6 @@ async def triggers_ou_create(
 ):
     """Create an organizational unit."""
     dry_run = dry_run or False
-    print("/triggers/ou/create called")
-    print(payload.json(indent=4))
 
     # We will never create a top level organization unit with SDMox.
     # Thus we cannot accept requests with no parent set, or the parent set to the
@@ -129,8 +127,6 @@ async def triggers_ou_edit(
 ):
     """Rename or move an organizational unit."""
     dry_run = dry_run or False
-    print("/triggers/ou/edit called")
-    print(payload.json(indent=4))
 
     uuid = payload.uuid
     data = payload.request["data"]
@@ -159,8 +155,6 @@ async def triggers_address_create(
 ):
     """Create an addresses."""
     dry_run = dry_run or False
-    print("/triggers/address/create called")
-    print(payload.json(indent=4))
 
     unit_uuid = payload.request.get("org_unit", {}).get("uuid")
     if not unit_uuid:
@@ -192,8 +186,6 @@ async def triggers_address_edit(
 ):
     """Edit an address."""
     dry_run = dry_run or False
-    print("/triggers/address/edit called")
-    print(payload.json(indent=4))
 
     unit_uuid = payload.request.get("org_unit", {}).get("uuid")
     if not unit_uuid:

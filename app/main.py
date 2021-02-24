@@ -18,11 +18,13 @@ sys.path.insert(0, "/")
 
 from typing import Any, Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from structlog import get_logger
 
 from app.config import get_settings
 from app.routers import api, trigger_api
+from app.tracing import setup_instrumentation, setup_logging
 
 tags_metadata = [
     {
@@ -76,3 +78,6 @@ def info() -> Dict[str, Any]:
 
 app.include_router(api.router, tags=["API"])
 app.include_router(trigger_api.router, prefix="/triggers", tags=["Trigger API"])
+
+app = setup_instrumentation(app)
+setup_logging()

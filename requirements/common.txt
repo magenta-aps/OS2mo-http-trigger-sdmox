@@ -2,6 +2,15 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
+structlog
+
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-jaeger
+opentelemetry-instrumentation-aiohttp-client
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-fastapi
+
 pika
 os2mo-http-trigger-protocol==0.0.2
 os2mo-sd-connector==0.0.1

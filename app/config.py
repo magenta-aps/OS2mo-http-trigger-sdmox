@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     sd_institution: str
     sd_base_url: HttpUrl = parse_obj_as(HttpUrl, "https://service.sd.dk/sdws/")
 
+    jaeger_service: str = "SDMox"
+    jaeger_hostname: Optional[str] = None
+    jaeger_port: Port = Port(6831)
+
 
 def get_settings(**overrides) -> Settings:
     return Settings(**overrides)
