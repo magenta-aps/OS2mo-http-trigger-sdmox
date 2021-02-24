@@ -4,7 +4,7 @@
 
 import asyncio
 from datetime import date
-from functools import lru_cache, partial, wraps
+from functools import lru_cache, wraps
 from typing import Any, Awaitable, Callable, Tuple, TypeVar
 from uuid import UUID
 

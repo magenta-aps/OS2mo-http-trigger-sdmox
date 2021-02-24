@@ -4,3 +4,4 @@
 
 pika
 os2mo-http-trigger-protocol==0.0.2
+os2mo-sd-connector==0.0.1
