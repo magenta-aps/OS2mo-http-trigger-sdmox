@@ -19,11 +19,11 @@ import requests
 import xmltodict
 from os2mo_helpers.mora_helpers import MoraHelper
 from sd_connector import SDConnector
+from structlog import get_logger
 
 import app.sd_mox_payloads as smp
 from app.config import Settings, get_settings
 from app.util import apply, get_mora_helper
-from structlog import get_logger
 
 
 class SDMoxError(Exception):
