@@ -20,7 +20,6 @@ from typing import Any, Dict
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-from structlog import get_logger
 
 from app.config import get_settings
 from app.routers import api, trigger_api

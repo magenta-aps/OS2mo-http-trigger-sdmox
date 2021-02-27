@@ -23,13 +23,12 @@ from sd_connector import SDConnector
 import app.sd_mox_payloads as smp
 from app.config import Settings, get_settings
 from app.util import apply, get_mora_helper
-
-logger = logging.getLogger("sdMox")
-logger.setLevel(logging.DEBUG)
+from structlog import get_logger
 
 
 class SDMoxError(Exception):
     def __init__(self, message):
+        logger = get_logger()
         logger.exception(str(message))
         Exception.__init__(self, "SD-Mox: " + str(message))
 
@@ -170,6 +169,7 @@ class SDMox(SDMoxInterface):
 
     def _on_response(self, ch, method, props, body):
         # We never expect a result from SD!
+        logger = get_logger()
         logger.error(body)
         raise SDMoxError("Uventet svar fra SD AMQP")
 
@@ -184,6 +184,7 @@ class SDMox(SDMoxInterface):
         Returns:
             True
         """
+        logger = get_logger()
         logger.info("Establishing connection to SD-Mox AMQP")
         self._amqp_connect()
 
@@ -358,6 +359,7 @@ class SDMox(SDMoxInterface):
         return parent_info
 
     async def _read_department(self, unit_code=None, unit_uuid=None, unit_level=None):
+        logger = get_logger()
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
         from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
         department = await self.sd_connector.getDepartment(
@@ -411,6 +413,8 @@ class SDMox(SDMoxInterface):
         :param operation: flyt, ret, import
         :return: Returns list errors, empty list if no errors.
         """
+        logger = get_logger()
+
         errors = []
 
         def compare(actual, expected, error):
@@ -514,6 +518,7 @@ class SDMox(SDMoxInterface):
         return xml
 
     async def _validate_unit_code(self, unit_code, unit_level=None, can_exist=False):
+        logger = get_logger()
         logger.info("Validating unit code {}".format(unit_code))
         code_errors = []
         if unit_code is None:
@@ -567,6 +572,7 @@ class SDMox(SDMoxInterface):
         will not be the same random uuid as for the actual run, unless the returned
         uuid is stored and given as parameter for the actual run.
         """
+        logger = get_logger()
         code_errors = await self._validate_unit_code(unit_code)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
@@ -603,6 +609,7 @@ class SDMox(SDMoxInterface):
         return unit_uuid
 
     def _edit_unit(self, test_run=True, **payload):
+        logger = get_logger()
         xml = self._create_xml_ret(**payload)
         logger.debug("Edit unit xml: {}".format(xml))
         if not test_run:
@@ -613,7 +620,7 @@ class SDMox(SDMoxInterface):
     async def _move_unit(
         self, unit_name, unit_code, parent, unit_level, unit_uuid=None, test_run=True
     ):
-
+        logger = get_logger()
         code_errors = await self._validate_unit_code(unit_code, can_exist=True)
         if code_errors:
             raise SDMoxError(", ".join(code_errors))
