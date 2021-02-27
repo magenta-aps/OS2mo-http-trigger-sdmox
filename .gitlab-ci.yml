@@ -1,0 +1,189 @@
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
+################################################################################
+# Changes to this file requires approval from Labs. Please add a person from   #
+# Labs as required approval to your MR if you have any changes.                #
+################################################################################
+
+# For `docker push` to work, the following envionment variables have to set in
+# the Gitlab UI.
+# RELEASE_REGISTRY_USER
+# RELEASE_REGISTRY_PASSWORD
+
+stages:
+  - lint
+  # build stage is not blocked by lint stage, as we have a DAG:
+  # https://docs.gitlab.com/ee/ci/directed_acyclic_graph/index.html
+  - build
+  - test
+  - release
+  - deploy
+
+variables:
+  # Project variables
+  RELEASE_REGISTRY: docker.io
+  RELEASE_REGISTRY_IMAGE: index.docker.io/magentaaps/os2mo-http-trigger-sdmox
+
+  IMAGE_SHA: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
+
+  IMAGE_DEV: ${RELEASE_REGISTRY_IMAGE}:dev
+  IMAGE_RC: ${RELEASE_REGISTRY_IMAGE}:rc
+  IMAGE_VERSION: ${RELEASE_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+  IMAGE_LATEST: ${RELEASE_REGISTRY_IMAGE}:latest
+
+
+# Lint stage
+#############
+
+.lint-default: &lint-default
+  stage: lint
+  needs: []
+  image: python:3.7
+  services: []
+  tags:
+    - docker
+
+TypeCheck Python:
+  <<: *lint-default
+  before_script:
+    - pip3 install -r requirements/lint.txt
+  script:
+    - python -m mypy --ignore-missing-imports --strict-optional --no-implicit-optional app/
+
+Lint Python:
+  <<: *lint-default
+  before_script:
+    - pip3 install -r requirements/lint.txt
+  script:
+    - python -m black --diff --check app/
+    - python -m isort --profile black --diff --check-only app/
+
+Lint Dockerfiles:
+  <<: *lint-default
+  image: hadolint/hadolint:latest-debian
+  before_script:
+    - apt-get -y update
+    - apt-get -y install --no-install-recommends git
+  script:
+    - git ls-files --exclude='Dockerfile*' --ignored | xargs --max-lines=1 hadolint
+
+REUSE compliance:
+  <<: *lint-default
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  script:
+    - reuse lint
+
+
+# Build stage
+#############
+
+Build Image:
+  stage: build
+  needs: []
+  image:
+    # We use kaniko v0.16.0 as both v0.17.0, v0.17.1, v0.18.0 and v0.19.0 contains fatal bugs.
+    name: gcr.io/kaniko-project/executor:debug-v0.16.0
+    entrypoint: [""]
+  tags:
+    - docker
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --cache
+      --context=$CI_PROJECT_DIR
+      --dockerfile=$CI_PROJECT_DIR/Dockerfile
+      --destination=${IMAGE_SHA}
+
+
+# Test stage
+############
+
+.test-default: &test-default
+  stage: test
+  needs: ["Build Image"]
+  services: []
+  before_script:
+    - pip3 install -r requirements/test.txt
+  tags:
+    - docker
+
+Unit-test:
+  <<: *test-default
+  image:
+    name: ${IMAGE_SHA}
+  script:
+    - pytest
+      --cov=mora
+      --junitxml $CI_PROJECT_DIR/junit.xml
+      --cov-report html:$CI_PROJECT_DIR/coverage-html
+      --cov-report term
+      -p no:cacheprovider
+      --color=yes
+      tests/
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    when: always
+    paths:
+      - $CI_PROJECT_DIR/coverage-html
+    reports:
+      junit: $CI_PROJECT_DIR/junit.xml
+
+
+# Release stage
+###############
+
+.release-default: &release-default
+  stage: release
+  needs: ["Unit-test"]
+  image: alpine
+  variables:
+    GIT_STRATEGY: none # We do not need the source code
+  tags:
+    - docker
+  before_script:
+    - apk add skopeo
+
+
+Release dev:
+  <<: *release-default
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+  script:
+    - skopeo copy
+      --src-creds=${CI_REGISTRY_USER}:${CI_BUILD_TOKEN}
+      --dest-creds=${RELEASE_REGISTRY_USER}:${RELEASE_REGISTRY_PASSWORD}
+      "docker://${IMAGE_SHA}"
+      "docker://${IMAGE_DEV}"
+
+Release rc:
+  <<: *release-default
+  rules:
+    - if: $CI_COMMIT_REF_NAME =~ /^release\/.+$/
+  script:
+    - skopeo copy
+      --src-creds=${CI_REGISTRY_USER}:${CI_BUILD_TOKEN}
+      --dest-creds=${RELEASE_REGISTRY_USER}:${RELEASE_REGISTRY_PASSWORD}
+      "docker://${IMAGE_SHA}"
+      "docker://${IMAGE_RC}"
+
+Release master:
+  <<: *release-default
+  rules:
+      # Matches <version core> from SemVer 2.0.0 BNF grammar. Ex. 2.3.4, but not 2.3.4-rc
+      - if: $CI_COMMIT_TAG =~ /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+  script:
+    - skopeo copy
+      --src-creds=${CI_REGISTRY_USER}:${CI_BUILD_TOKEN}
+      --dest-creds=${RELEASE_REGISTRY_USER}:${RELEASE_REGISTRY_PASSWORD}
+      "docker://${IMAGE_SHA}"
+      "docker://${IMAGE_VERSION}"
+    - skopeo copy
+      --src-creds=${CI_REGISTRY_USER}:${CI_BUILD_TOKEN}
+      --dest-creds=${RELEASE_REGISTRY_USER}:${RELEASE_REGISTRY_PASSWORD}
+      "docker://${IMAGE_SHA}"
+      "docker://${IMAGE_LATEST}"
+

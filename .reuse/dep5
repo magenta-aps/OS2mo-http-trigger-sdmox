@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: OS2MO-HTTP-TRIGGER-SDMOX
+Upstream-Contact: Magenta ApS <info@magenta.dk>
+
+Files: tests/res/*
+Copyright: Magenta ApS
+License: MPL-2.0
