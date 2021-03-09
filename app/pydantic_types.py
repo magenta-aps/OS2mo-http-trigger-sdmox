@@ -10,36 +10,31 @@ from pydantic.main import BaseConfig
 from pydantic.networks import ascii_domain_regex, int_domain_regex
 from pydantic.validators import str_validator
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from pydantic.typing import CallableGenerator
 
 
 class Port(int):
     @no_type_check
-    def __new__(cls, port: Optional[int], **kwargs) -> object:
-        return int.__new__(cls, cls.build(**kwargs) if port is None else port)
+    def __new__(cls, port: Optional[int]) -> object:
+        return int.__new__(cls, port)
 
     def __init__(self, port: int, *args, **kwargs) -> None:
         int.__init__(port)
-
-    @classmethod
-    def build(cls, port: int, *args, **kwargs) -> int:
-        return port
 
     @classmethod
     def __get_validators__(cls) -> "CallableGenerator":
         yield cls.validate
 
     @classmethod
-    def validate(cls, value: Any, field: ModelField, config: BaseConfig) -> "Port":
-        if value.__class__ == cls:
-            return value
+    def validate(cls, value: Any) -> "Port":
+        if not isinstance(value, int):
+            raise TypeError("Integer required")
 
-        port = value
-        if port is not None and port > 65_535:
+        if value is not None and value > 65_535:
             raise UrlPortError()
 
-        return cls(port)
+        return cls(value)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({super().__repr__()})"
@@ -49,24 +44,20 @@ class Domain(str):
     strip_whitespace = True
 
     @no_type_check
-    def __new__(cls, domain: Optional[str], **kwargs) -> object:
-        return str.__new__(cls, cls.build(**kwargs) if domain is None else domain)
+    def __new__(cls, domain: Optional[str]) -> object:
+        return str.__new__(cls, domain)
 
     def __init__(self, domain: str, *args, **kwargs) -> None:
         str.__init__(domain)
-
-    @classmethod
-    def build(cls, domain: str, *args, **kwargs) -> str:
-        return domain
 
     @classmethod
     def __get_validators__(cls) -> "CallableGenerator":
         yield cls.validate
 
     @classmethod
-    def validate(cls, value: Any, field: ModelField, config: BaseConfig) -> "Domain":
-        if value.__class__ == cls:
-            return value
+    def validate(cls, value: Any) -> "Domain":
+        if not isinstance(value, str):
+            raise TypeError("String required")
 
         value = str_validator(value)
         if cls.strip_whitespace:
