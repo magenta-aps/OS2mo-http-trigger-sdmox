@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: Magenta ApS
 #
 # SPDX-License-Identifier: MPL-2.0
-
-version: "3"
+version: "2.4"
 services:
   web:
     build: .
@@ -23,7 +22,7 @@ services:
       SD_INSTITUTION: 'ID'
 
       # JAEGER_HOSTNAME: "jaeger"
-    ports:
-      - "5011:80"
+    # ports:
+    #   - "5011:80"
     volumes:
       - ./app:/app
