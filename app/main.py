@@ -98,6 +98,30 @@ async def sdmox_exception_handler(request: Request, exc: SDMoxError):
     )
 
 
+from pika.exceptions import ProbableAuthenticationError
+@app.exception_handler(ProbableAuthenticationError)
+async def pika_exception_handler(request: Request, exc: ProbableAuthenticationError):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
+
+from aiohttp.client_exceptions import ClientResponseError
+@app.exception_handler(ClientResponseError)
+async def aiohttp_exception_handler(request: Request, exc: ClientResponseError):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
+
+from requests.exceptions import RequestException
+@app.exception_handler(RequestException)
+async def requests_exception_handler(request: Request, exc: RequestException):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
+
 app.include_router(api.router, tags=["API"])
 app.include_router(trigger_api.router, prefix="/triggers", tags=["Trigger API"])
 
