@@ -467,7 +467,7 @@ class SDMox(SDMoxInterface):
             else:
                 errors.append("Parent")
         if not errors:
-            logger.info("SD-Mox succeess on %s", unit_uuid)
+            logger.info("SD-Mox succeess on %s".format(unit_uuid))
 
         return department, errors
 
@@ -533,12 +533,12 @@ class SDMox(SDMoxInterface):
             if unit_code.upper() != unit_code:
                 code_errors.append("Enhedsnummer skal være store bogstaver")
 
-        if not code_errors:
+        if not code_errors and not can_exist:
             # TODO: Ignore duplicates as we lookup using UUID elsewhere
             #       Only check for duplicates on new creations
             # customers expect unique unit_codes globally
             department = await self._read_department(unit_code=unit_code)
-            if department is not None and not can_exist:
+            if department is not None:
                 code_errors.append("Enhedsnummer er i brug")
         return code_errors
 

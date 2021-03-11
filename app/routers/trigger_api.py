@@ -73,6 +73,7 @@ def triggers(request: Request) -> List[MOTriggerRegister]:
             request_type=request_type,
             role_type=role_type,
             url="/triggers/" + str(role_type) + "/" + str(request_type.value),
+            timeout=60,
         )
         for request_type, role_type in triggers
     ]
