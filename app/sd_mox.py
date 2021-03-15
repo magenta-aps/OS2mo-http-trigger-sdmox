@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import asyncio
-import logging
-import pprint
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import date, datetime, time
@@ -370,9 +368,7 @@ class SDMox(SDMoxInterface):
         )
         department_info = department.get("Department", None)
         logger.debug(
-            "Read department, department_info: {}".format(
-                pprint.pformat(department_info)
-            )
+            "Read department", department_info=department_info
         )
 
         if isinstance(department_info, list):
@@ -396,7 +392,7 @@ class SDMox(SDMoxInterface):
         parent=None,
         integration_values=None,
         operation=None,
-    ):
+    ) -> Tuple[Dict, List]:
         """
         Verify that an SD department contains what we think it should contain.
         Besides the supplied parameters, the activation date is also checked
@@ -419,6 +415,7 @@ class SDMox(SDMoxInterface):
 
         def compare(actual, expected, error):
             if expected is not None and actual != expected:
+                logger.error("Compare failed", error=error, expected=expected, actual=actual)
                 errors.append(error)
 
         department = await self._read_department(
@@ -467,7 +464,9 @@ class SDMox(SDMoxInterface):
             else:
                 errors.append("Parent")
         if not errors:
-            logger.info("SD-Mox succeess on %s".format(unit_uuid))
+            logger.info("SD-Mox success", unit_uuid=unit_uuid)
+        else:
+            logger.error("SD-MOX error", unit_uuid=unit_uuid, errors=errors)
 
         return department, errors
 
@@ -647,7 +646,7 @@ class SDMox(SDMoxInterface):
             parent=parent["uuid"],
             parent_unit_uuid=parent["uuid"],
         )
-        logger.debug("Move unit xml: {}".format(xml))
+        logger.debug("Move unit operation", xml=xml)
         if not test_run:
             self._call(xml)
         return unit_uuid
@@ -672,7 +671,7 @@ class SDMox(SDMoxInterface):
         elif errors:
             errstr = ", ".join(errors)
             raise SDMoxError(
-                "Følgende felter kunne " "ikke opdateres i SD: %s" % errstr
+                "Følgende felter kunne ikke opdateres i SD: %s" % errstr
             )
         return unit
 
