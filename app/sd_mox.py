@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import asyncio
+import operator
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import date, datetime, time
@@ -413,8 +414,9 @@ class SDMox(SDMoxInterface):
 
         errors = []
 
-        def compare(actual, expected, error):
-            if expected is not None and actual != expected:
+        def compare(actual, expected, error, comparator=None):
+            comparator = comparator or operator.ne
+            if expected is not None and comparator(actual, expected):
                 logger.error("Compare failed", error=error, expected=expected, actual=actual)
                 errors.append(error)
 
@@ -427,7 +429,13 @@ class SDMox(SDMoxInterface):
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
         if operation in ("ret", "import"):
             compare(department.get("ActivationDate"), from_date, "Activation Date")
-        compare(department.get("DepartmentName"), unit_name, "Name")
+        compare(
+            department.get("DepartmentName"),
+            unit_name,
+            "Name",
+            # SD has a length limit, so we use startswith instead of equals.
+            lambda actual, expected: not expected.startswith(actual)
+        )
         compare(department.get("DepartmentIdentifier"), unit_code, "Unit code")
         compare(department.get("DepartmentUUIDIdentifier"), unit_uuid, "UUID")
         compare(department.get("DepartmentLevelIdentifier"), unit_level, "Level")
