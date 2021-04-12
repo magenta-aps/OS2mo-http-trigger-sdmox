@@ -16,13 +16,16 @@ import sys
 
 sys.path.insert(0, "/")
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from uuid import UUID
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from app.config import get_settings
 from app.routers import api, trigger_api
+from app.sd_mox import SDMoxError
+from app.sd_tree_org import department_identifier_list, sd_tree_org
 from app.tracing import setup_instrumentation, setup_logging
 
 tags_metadata = [
@@ -73,6 +76,67 @@ def info() -> Dict[str, Any]:
         "description": app.description,
         "version": app.version,
     }
+
+
+@app.get(
+    "/tree",
+    tags=["Meta"],
+    summary="Printout org tree from SD",
+    response_class=PlainTextResponse,
+)
+async def tree(root_uuid: Optional[UUID] = None) -> str:
+    return await sd_tree_org(root_uuid)
+
+
+@app.get(
+    "/duplicates",
+    tags=["Meta"],
+    summary="Printout Department Identifiers with duplicates from SD",
+    response_class=JSONResponse,
+)
+async def duplicates() -> Dict[str, int]:
+    return await department_identifier_list()
+
+
+@app.exception_handler(SDMoxError)
+async def sdmox_exception_handler(request: Request, exc: SDMoxError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": f"{str(exc)}"},
+    )
+
+
+from pika.exceptions import ProbableAuthenticationError
+
+
+@app.exception_handler(ProbableAuthenticationError)
+async def pika_exception_handler(request: Request, exc: ProbableAuthenticationError):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
+
+
+from aiohttp.client_exceptions import ClientResponseError
+
+
+@app.exception_handler(ClientResponseError)
+async def aiohttp_exception_handler(request: Request, exc: ClientResponseError):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
+
+
+from requests.exceptions import RequestException
+
+
+@app.exception_handler(RequestException)
+async def requests_exception_handler(request: Request, exc: RequestException):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"SDMOX Miskonfiguration: {str(exc)}"},
+    )
 
 
 app.include_router(api.router, tags=["API"])

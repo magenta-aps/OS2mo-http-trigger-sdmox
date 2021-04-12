@@ -3,8 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import asyncio
-import logging
-import pprint
+import operator
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from datetime import date, datetime, time
@@ -369,11 +368,7 @@ class SDMox(SDMoxInterface):
             end_date=from_date,
         )
         department_info = department.get("Department", None)
-        logger.debug(
-            "Read department, department_info: {}".format(
-                pprint.pformat(department_info)
-            )
-        )
+        logger.debug("Read department", department_info=department_info)
 
         if isinstance(department_info, list):
             msg = "Afdeling ikke unik. Code {}, uuid {}, level {}".format(
@@ -396,7 +391,7 @@ class SDMox(SDMoxInterface):
         parent=None,
         integration_values=None,
         operation=None,
-    ):
+    ) -> Tuple[Optional[Dict], List]:
         """
         Verify that an SD department contains what we think it should contain.
         Besides the supplied parameters, the activation date is also checked
@@ -417,8 +412,12 @@ class SDMox(SDMoxInterface):
 
         errors = []
 
-        def compare(actual, expected, error):
-            if expected is not None and actual != expected:
+        def compare(actual, expected, error, comparator=None):
+            comparator = comparator or operator.ne
+            if expected is not None and comparator(actual, expected):
+                logger.error(
+                    "Compare failed", error=error, expected=expected, actual=actual
+                )
                 errors.append(error)
 
         department = await self._read_department(
@@ -430,7 +429,13 @@ class SDMox(SDMoxInterface):
         from_date = self.virkning["sd:FraTidspunkt"]["sd:TidsstempelDatoTid"][0:10]
         if operation in ("ret", "import"):
             compare(department.get("ActivationDate"), from_date, "Activation Date")
-        compare(department.get("DepartmentName"), unit_name, "Name")
+        compare(
+            department.get("DepartmentName"),
+            unit_name,
+            "Name",
+            # SD has a length limit, so we use startswith instead of equals.
+            lambda actual, expected: not expected.startswith(actual),
+        )
         compare(department.get("DepartmentIdentifier"), unit_code, "Unit code")
         compare(department.get("DepartmentUUIDIdentifier"), unit_uuid, "UUID")
         compare(department.get("DepartmentLevelIdentifier"), unit_level, "Level")
@@ -467,7 +472,9 @@ class SDMox(SDMoxInterface):
             else:
                 errors.append("Parent")
         if not errors:
-            logger.info("SD-Mox succeess on %s", unit_uuid)
+            logger.info("SD-Mox success", unit_uuid=unit_uuid)
+        else:
+            logger.error("SD-MOX error", unit_uuid=unit_uuid, errors=errors)
 
         return department, errors
 
@@ -533,12 +540,12 @@ class SDMox(SDMoxInterface):
             if unit_code.upper() != unit_code:
                 code_errors.append("Enhedsnummer skal være store bogstaver")
 
-        if not code_errors:
+        if not code_errors and not can_exist:
             # TODO: Ignore duplicates as we lookup using UUID elsewhere
             #       Only check for duplicates on new creations
             # customers expect unique unit_codes globally
             department = await self._read_department(unit_code=unit_code)
-            if department is not None and not can_exist:
+            if department is not None:
                 code_errors.append("Enhedsnummer er i brug")
         return code_errors
 
@@ -647,7 +654,7 @@ class SDMox(SDMoxInterface):
             parent=parent["uuid"],
             parent_unit_uuid=parent["uuid"],
         )
-        logger.debug("Move unit xml: {}".format(xml))
+        logger.debug("Move unit operation", xml=xml)
         if not test_run:
             self._call(xml)
         return unit_uuid
@@ -671,9 +678,7 @@ class SDMox(SDMoxInterface):
             raise SDMoxError("Afdeling ikke fundet: %s" % payload["unit_uuid"])
         elif errors:
             errstr = ", ".join(errors)
-            raise SDMoxError(
-                "Følgende felter kunne " "ikke opdateres i SD: %s" % errstr
-            )
+            raise SDMoxError("Følgende felter kunne ikke opdateres i SD: %s" % errstr)
         return unit
 
     def _payload_create(self, unit_uuid, unit, parent):

@@ -81,7 +81,8 @@ def _verify_ou_ok(uuid: UUID, at: date, mora_helper: MoraHelper):
 
     if not should_mox_run(mo_ou):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            # TODO: Change to 304_NOT_MODIFIED when #41894 is merged.
+            status_code=status.HTTP_200_OK,
             detail="The requested organizational unit is outside the configured allow list",
         )
 
