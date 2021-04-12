@@ -1,12 +1,16 @@
+# SPDX-FileCopyrightText: Magenta ApS
+#
+# SPDX-License-Identifier: MPL-2.0
+
 import asyncio
+from collections import Counter
 from functools import partial
 from operator import itemgetter
-from collections import Counter
 
 from anytree import Node, RenderTree
+from sd_connector import SDConnector
 
 from app.config import Settings, get_settings
-from sd_connector import SDConnector
 
 
 def create_sd_connector() -> SDConnector:
@@ -51,7 +55,15 @@ async def sd_tree_org(root_uuid=None):
 
     def build_any_tree(parent_map, root_uuid):
         def build_tree_node(uuid, parent=None):
-            node = Node(department_name_map[uuid] + " (" + department_id_map[uuid] + ", " + uuid + ")", parent=parent)
+            node = Node(
+                department_name_map[uuid]
+                + " ("
+                + department_id_map[uuid]
+                + ", "
+                + uuid
+                + ")",
+                parent=parent,
+            )
             return node
 
         def build_tree(parent_node, parent_uuid):

@@ -6,18 +6,15 @@ import structlog
 from fastapi import Request
 from opentelemetry import trace
 from opentelemetry.exporter import jaeger
-from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+from opentelemetry.instrumentation.aiohttp_client import \
+    AioHttpClientInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchExportSpanProcessor
 from structlog import get_logger
-from structlog.contextvars import (
-    bind_contextvars,
-    clear_contextvars,
-    merge_contextvars,
-    unbind_contextvars,
-)
+from structlog.contextvars import (bind_contextvars, clear_contextvars,
+                                   merge_contextvars, unbind_contextvars)
 
 from app.config import Settings, get_settings
 

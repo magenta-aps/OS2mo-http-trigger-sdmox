@@ -368,9 +368,7 @@ class SDMox(SDMoxInterface):
             end_date=from_date,
         )
         department_info = department.get("Department", None)
-        logger.debug(
-            "Read department", department_info=department_info
-        )
+        logger.debug("Read department", department_info=department_info)
 
         if isinstance(department_info, list):
             msg = "Afdeling ikke unik. Code {}, uuid {}, level {}".format(
@@ -393,7 +391,7 @@ class SDMox(SDMoxInterface):
         parent=None,
         integration_values=None,
         operation=None,
-    ) -> Tuple[Dict, List]:
+    ) -> Tuple[Optional[Dict], List]:
         """
         Verify that an SD department contains what we think it should contain.
         Besides the supplied parameters, the activation date is also checked
@@ -417,7 +415,9 @@ class SDMox(SDMoxInterface):
         def compare(actual, expected, error, comparator=None):
             comparator = comparator or operator.ne
             if expected is not None and comparator(actual, expected):
-                logger.error("Compare failed", error=error, expected=expected, actual=actual)
+                logger.error(
+                    "Compare failed", error=error, expected=expected, actual=actual
+                )
                 errors.append(error)
 
         department = await self._read_department(
@@ -434,7 +434,7 @@ class SDMox(SDMoxInterface):
             unit_name,
             "Name",
             # SD has a length limit, so we use startswith instead of equals.
-            lambda actual, expected: not expected.startswith(actual)
+            lambda actual, expected: not expected.startswith(actual),
         )
         compare(department.get("DepartmentIdentifier"), unit_code, "Unit code")
         compare(department.get("DepartmentUUIDIdentifier"), unit_uuid, "UUID")
@@ -678,9 +678,7 @@ class SDMox(SDMoxInterface):
             raise SDMoxError("Afdeling ikke fundet: %s" % payload["unit_uuid"])
         elif errors:
             errstr = ", ".join(errors)
-            raise SDMoxError(
-                "Følgende felter kunne ikke opdateres i SD: %s" % errstr
-            )
+            raise SDMoxError("Følgende felter kunne ikke opdateres i SD: %s" % errstr)
         return unit
 
     def _payload_create(self, unit_uuid, unit, parent):

@@ -5,34 +5,16 @@ from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    FastAPI,
-    HTTPException,
-    Path,
-    Query,
-    Request,
-    status,
-)
+from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Path, Query,
+                     Request, status)
 from os2mo_helpers.mora_helpers import MoraHelper
 
-from app.dependencies import (
-    _ou_edit_name,
-    _ou_edit_parent,
-    _verify_ou_ok,
-    _verify_ou_ok_responses,
-)
-from app.models import (
-    EventType,
-    MOTriggerPayload,
-    MOTriggerPayloadAddressCreate,
-    MOTriggerPayloadAddressEdit,
-    MOTriggerPayloadOUCreate,
-    MOTriggerPayloadOUEdit,
-    MOTriggerRegister,
-    RequestType,
-)
+from app.dependencies import (_ou_edit_name, _ou_edit_parent, _verify_ou_ok,
+                              _verify_ou_ok_responses)
+from app.models import (EventType, MOTriggerPayload,
+                        MOTriggerPayloadAddressCreate,
+                        MOTriggerPayloadAddressEdit, MOTriggerPayloadOUCreate,
+                        MOTriggerPayloadOUEdit, MOTriggerRegister, RequestType)
 from app.sd_mox import SDMox, SDMoxInterface
 from app.util import get_mora_helper_default
 
