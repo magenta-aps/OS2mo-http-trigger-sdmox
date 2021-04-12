@@ -5,14 +5,14 @@
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseSettings, HttpUrl, PositiveInt
+from pydantic import AnyHttpUrl, BaseSettings, HttpUrl, PositiveInt
 from pydantic.tools import parse_obj_as
 
 from app.pydantic_types import Domain, Port
 
 
 class Settings(BaseSettings):
-    mora_url: HttpUrl = parse_obj_as(HttpUrl, "https://morademo.magenta.dk/")
+    mora_url: AnyHttpUrl = parse_obj_as(AnyHttpUrl, "https://morademo.magenta.dk/")
     saml_token: Optional[UUID] = None
 
     triggered_uuids: List[UUID]
