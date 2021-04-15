@@ -22,7 +22,6 @@ from uuid import UUID
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from os2mo_fastapi_utils.tracing import setup_instrumentation, setup_logging
-
 from structlog.processors import KeyValueRenderer
 
 from app.config import get_settings
