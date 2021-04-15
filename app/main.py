@@ -22,6 +22,7 @@ from uuid import UUID
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from os2mo_fastapi_utils.tracing import setup_instrumentation, setup_logging
+from structlog.processors import KeyValueRenderer
 
 from app.config import get_settings
 from app.routers import api, trigger_api
@@ -143,4 +144,7 @@ app.include_router(api.router, tags=["API"])
 app.include_router(trigger_api.router, prefix="/triggers", tags=["Trigger API"])
 
 app = setup_instrumentation(app)
-setup_logging()
+
+from structlog.contextvars import merge_contextvars
+
+setup_logging(processors=[merge_contextvars, KeyValueRenderer()])
