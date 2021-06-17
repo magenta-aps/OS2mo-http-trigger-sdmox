@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 from datetime import date
 from functools import partial
+from typing import Any
+from typing import Dict
 from typing import Optional
 from uuid import UUID
 
@@ -87,7 +89,7 @@ def _verify_ou_ok(uuid: UUID, at: date, mora_helper: MoraHelper):
         )
 
 
-_verify_ou_ok_responses = {
+_verify_ou_ok_responses: Dict[int, Dict[str, Any]] = {
     status.HTTP_502_BAD_GATEWAY: {
         "model": DetailError,
         "description": (

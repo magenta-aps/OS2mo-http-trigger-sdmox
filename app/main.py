@@ -29,7 +29,7 @@ from app.routers import api, trigger_api
 from app.sd_mox import SDMoxError
 from app.sd_tree_org import department_identifier_list, sd_tree_org
 
-tags_metadata = [
+tags_metadata: List[Dict[str, Any]] = [
     {
         "name": "Meta",
         "description": "Various meta endpoints",
