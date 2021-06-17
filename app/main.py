@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, "/")
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import FastAPI, Request
