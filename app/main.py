@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, "/")
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import FastAPI, Request
@@ -29,7 +29,7 @@ from app.routers import api, trigger_api
 from app.sd_mox import SDMoxError
 from app.sd_tree_org import department_identifier_list, sd_tree_org
 
-tags_metadata = [
+tags_metadata: List[Dict[str, Any]] = [
     {
         "name": "Meta",
         "description": "Various meta endpoints",
