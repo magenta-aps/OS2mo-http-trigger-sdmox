@@ -5,3 +5,4 @@
 -r common.txt
 pytest
 pytest-cov
+freezegun
