@@ -12,7 +12,7 @@ from app.pydantic_types import Domain, Port
 
 
 class Settings(BaseSettings):
-    mora_url: AnyHttpUrl = parse_obj_as(AnyHttpUrl, "https://morademo.magenta.dk/")
+    mora_url: AnyHttpUrl = parse_obj_as(AnyHttpUrl, "https://moradev.magentahosted.dk")
     saml_token: Optional[UUID] = None
 
     triggered_uuids: List[UUID]

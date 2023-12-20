@@ -94,7 +94,7 @@ async def triggers_ou_create(
     # We will never create a top level organization unit with SDMox.
     # Thus we cannot accept requests with no parent set, or the parent set to the
     # root organization.
-    parent_uuid = payload.request.get("parent", {}).get("uuid")
+    parent_uuid = (payload.request.get("parent") or {}).get("uuid")
     o_uuid = mora_helper.read_organisation()
     if not parent_uuid or parent_uuid == o_uuid:
         raise HTTPException(
@@ -157,7 +157,7 @@ async def triggers_address_create(
     """Create an addresses."""
     dry_run = dry_run or False
 
-    unit_uuid = payload.request.get("org_unit", {}).get("uuid")
+    unit_uuid = (payload.request.get("org_unit") or {}).get("uuid")
     if not unit_uuid:  # Probably an employee address
         return {"status": "NOOP"}
     # We will never create an addresses for units outside non-triggered uuid.
@@ -185,7 +185,7 @@ async def triggers_address_edit(
     """Edit an address."""
     dry_run = dry_run or False
 
-    unit_uuid = payload.request.get("org_unit", {}).get("uuid")
+    unit_uuid = (payload.request.get("org_unit") or {}).get("uuid")
     if not unit_uuid:  # Probably an employee address
         return {"status": "NOOP"}
     # We will never create an addresses for units outside non-triggered uuid.

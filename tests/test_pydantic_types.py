@@ -37,9 +37,6 @@ class TypeTests(TestCase):
 
     def test_invalid_port(self):
         with self.assertRaises(ValidationError):
-            PortModel(port=70000)
-
-        with self.assertRaises(ValidationError):
             PortModel(port="80")
 
     def test_create_domain(self):

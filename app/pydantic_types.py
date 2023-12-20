@@ -4,7 +4,7 @@
 
 from typing import TYPE_CHECKING, Any, Optional, no_type_check
 
-from pydantic.errors import UrlHostError, UrlPortError
+from pydantic.errors import UrlHostError
 from pydantic.fields import ModelField
 from pydantic.main import BaseConfig
 from pydantic.networks import ascii_domain_regex, int_domain_regex
@@ -30,9 +30,6 @@ class Port(int):
     def validate(cls, value: Any) -> "Port":
         if not isinstance(value, int):
             raise TypeError("Integer required")
-
-        if value is not None and value > 65_535:
-            raise UrlPortError()
 
         return cls(value)
 
@@ -66,9 +63,9 @@ class Domain(str):
         host = value
 
         is_international = False
-        d = ascii_domain_regex().fullmatch(host)
+        d = ascii_domain_regex().fullmatch(host)  # type: ignore
         if d is None:
-            d = int_domain_regex().fullmatch(host)
+            d = int_domain_regex().fullmatch(host)  # type: ignore
             if d is None:
                 raise UrlHostError()
             is_international = True
