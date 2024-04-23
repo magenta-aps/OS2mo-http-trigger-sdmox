@@ -34,6 +34,7 @@ include:
     file:
       - gitlab-ci-templates/common/no-interrupt-meta.v1.yml
       - gitlab-ci-templates/common/docker-release.v1.yml
+      - gitlab-ci-templates/common/conventional-commits.v1.yml
 
 
 # Lint stage
