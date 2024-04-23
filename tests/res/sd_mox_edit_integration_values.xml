@@ -24,15 +24,6 @@
                 </sd:Virkning>
                 <silkdata:AttributVaerdi>Skole1</silkdata:AttributVaerdi>
             </silkdata:Integration>
-            <silkdata:Integration>
-                <silkdata:AttributNavn>Tidsregistrering</silkdata:AttributNavn>
-                <sd:Virkning>
-                    <sd:FraTidspunkt>
-                        <sd:TidsstempelDatoTid>2019-07-01T00:00:00.00</sd:TidsstempelDatoTid>
-                    </sd:FraTidspunkt>
-                </sd:Virkning>
-                <silkdata:AttributVaerdi>Arbejdstidsplaner</silkdata:AttributVaerdi>
-            </silkdata:Integration>
         </sd:LokalUdvidelse>
         <Egenskab>
             <sd:EnhedNavn>A-sdm3</sd:EnhedNavn>
