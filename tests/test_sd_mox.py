@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import datetime
+from collections import OrderedDict
 from functools import partial
 from os import path
+from typing import OrderedDict as OrderedDictType
 from unittest import TestCase
 
 from freezegun import freeze_time
@@ -55,20 +57,22 @@ mox_overrides = {
 }
 
 
+class TestableSDMox(SDMox):
+    def _read_ou_levelkeys(self) -> OrderedDictType[str, str]:
+        return OrderedDict()
+
+
 @freeze_time("2020-01-01 12:00:00")
 class Tests(TestCase):
     def setUp(self):
         from_date = datetime.datetime(2019, 7, 1, 0, 0)
-        self.mox = SDMox(from_date, overrides=mox_overrides)
+        self.mox = TestableSDMox(from_date, overrides=mox_overrides)
 
         from collections import OrderedDict
 
         self.mox.sd_levels = OrderedDict([("Afdelings-niveau", "uuid-b")])
         self.mox.level_by_uuid = {
             "uuid-b": "Afdelings-niveau",
-        }
-        self.mox.arbtid_by_uuid = {
-            "uuid-tr-arbejdstidsplaner": "Arbejdstidsplaner",
         }
 
     def test_grouped_adresses(self):
@@ -173,7 +177,6 @@ class Tests(TestCase):
                 "integration_values": {
                     "formaalskode": None,
                     "skolekode": None,
-                    "time_planning": None,
                 },
                 "unit_uuid": "12345-22-22-22-12345",
             },
@@ -231,7 +234,6 @@ class Tests(TestCase):
                 "integration_values": {
                     "formaalskode": None,
                     "skolekode": None,
-                    "time_planning": None,
                 },
                 "unit_uuid": "12345-22-22-22-12345",
             },
@@ -249,7 +251,6 @@ class Tests(TestCase):
                 "name": "A-sdm3",
                 "org_unit_type": {"uuid": "uuid-a"},
                 "user_key": "user-key-33333",
-                "time_planning": {"uuid": "uuid-tr-arbejdstidsplaner"},
             },
             addresses=[
                 {
@@ -274,7 +275,6 @@ class Tests(TestCase):
                 "integration_values": {
                     "formaalskode": "Formål1",
                     "skolekode": "Skole1",
-                    "time_planning": "Arbejdstidsplaner",
                 },
                 "unit_uuid": "12345-33-33-33-12345",
             },

@@ -22,7 +22,7 @@ from structlog import get_logger
 
 import app.sd_mox_payloads as smp
 from app.config import Settings, get_settings
-from app.util import apply, get_mora_helper
+from app.util import get_mora_helper
 
 
 class SDMoxError(Exception):
@@ -86,7 +86,6 @@ class SDMox(SDMoxInterface):
         # Fetch levels from MO
         self.sd_levels: OrderedDictType[str, str] = self._read_ou_levelkeys()
         self.level_by_uuid: Dict[str, str] = {v: k for k, v in self.sd_levels.items()}
-        self.arbtid_by_uuid: Dict[str, str] = self._read_arbtid_by_uuid()
 
         # AMQP exchange
         self.exchange_name: str = "org-struktur-changes-topic"
@@ -110,17 +109,6 @@ class SDMox(SDMoxInterface):
         return OrderedDict(
             map(lambda key: (key, classes[key]), self.settings.ou_levelkeys)
         )
-
-    def _read_arbtid_by_uuid(self) -> Dict[str, str]:
-        classes: Dict[str, str] = self._fetch_class_map("time_planning")
-
-        arbtid_by_uuid = dict(
-            map(
-                apply(lambda key, sd_value: (classes[key], sd_value)),
-                self.settings.ou_time_planning_mo_vs_sd.items(),
-            )
-        )
-        return arbtid_by_uuid
 
     def _update_virkning(self, from_date: date, to_date: Optional[date] = None):
         # TODO: This code smells, type analysis found that the types are not right
@@ -499,7 +487,6 @@ class SDMox(SDMoxInterface):
                 self.virkning,
                 funktionskode=integration_values["formaalskode"],
                 skolekode=integration_values["skolekode"],
-                tidsregistrering=integration_values["time_planning"],
                 unit_name=unit_name,
             ),
             "Registrering": smp.create_registrering(
@@ -749,11 +736,6 @@ class SDMox(SDMoxInterface):
             # it has proven difficult to deal with pnumber before postal address
             raise SDMoxError("Opret postaddresse før pnummer")
 
-        # if time planning exists, it must be in self.arbtitd
-        time_planning = unit.get("time_planning", None)
-        if time_planning:
-            time_planning = self.arbtid_by_uuid[time_planning["uuid"]]
-
         return {
             "unit_name": unit["name"],
             "unit_code": unit["user_key"],
@@ -762,7 +744,6 @@ class SDMox(SDMoxInterface):
             "pnummer": scoped.get("PNUMBER", [None])[0],
             "adresse": self._mo_to_sd_address(scoped.get("DAR", [None])[0]),
             "integration_values": {
-                "time_planning": time_planning,
                 "formaalskode": keyed.get("Formålskode", [None])[0],
                 "skolekode": keyed.get("Skolekode", [None])[0],
             },

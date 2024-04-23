@@ -79,16 +79,12 @@ def _create_attribut_items(virkning, attributes):
     return attribute_items
 
 
-def attributes_ret(
-    virkning, funktionskode=None, skolekode=None, tidsregistrering=None, unit_name=None
-):
+def attributes_ret(virkning, funktionskode=None, skolekode=None, unit_name=None):
     attributes = {}
     if funktionskode is not None:
         attributes["FunktionKode"] = funktionskode
     if skolekode is not None:
         attributes["SkoleKode"] = skolekode
-    if tidsregistrering is not None:
-        attributes["Tidsregistrering"] = tidsregistrering
     integration_items = _create_attribut_items(virkning, attributes)
     attribut_liste = {"sd:LokalUdvidelse": {"silkdata:Integration": integration_items}}
     if unit_name:
