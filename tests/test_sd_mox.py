@@ -46,7 +46,6 @@ unit_parent = {
 mox_overrides = {
     "triggered_uuids": [],
     "ou_levelkeys": [],
-    "ou_time_planning_mo_vs_sd": {},
     "amqp_username": "guest",
     "amqp_password": "guest",
     "amqp_host": "example.org",
