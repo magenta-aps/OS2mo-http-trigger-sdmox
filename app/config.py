@@ -18,10 +18,6 @@ class Settings(BaseSettings):
     triggered_uuids: List[UUID]
     ou_levelkeys: List[str]
 
-    # TODO: extra fields are not permitted so this setting must be removed
-    #  once it has been removed from the infrastructure code
-    ou_time_planning_mo_vs_sd: Dict[str, str] = dict()
-
     amqp_username: str
     amqp_password: str
     amqp_host: Domain = Domain("msg-amqp.silkeborgdata.dk")
