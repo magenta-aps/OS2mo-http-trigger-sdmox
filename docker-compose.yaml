@@ -2,8 +2,13 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 version: "2.4"
+
+networks:
+  os2mo_default:
+    external: true
+
 services:
-  web:
+  sdmox:
     build: .
     command: '/start-reload.sh'
     environment:
@@ -24,5 +29,9 @@ services:
       # JAEGER_HOSTNAME: "jaeger"
     # ports:
     #   - "5011:80"
+
+    networks:
+      os2mo_default:
+
     volumes:
       - ./app:/app
